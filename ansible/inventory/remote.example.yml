@@ -1,0 +1,7 @@
+---
+all:
+  hosts:
+    workstation:
+      ansible_host: 192.0.2.10
+      ansible_user: your-user
+...

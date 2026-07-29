@@ -1,0 +1,34 @@
+# Managed by Ansible. Change defaults in ansible/values.yml or provide overrides.
+
+# Typography
+font-family = {{ dotfiles_values.ghostty.font.family }}
+font-size = {{ dotfiles_values.ghostty.font.size }}
+font-feature = calt
+font-thicken = false
+
+# Theme
+theme = {{ dotfiles_values.ghostty.theme }}
+
+# Window
+window-width = {{ dotfiles_values.ghostty.window.width }}
+window-height = {{ dotfiles_values.ghostty.window.height }}
+window-padding-x = {{ dotfiles_values.ghostty.window.padding_x }}
+window-padding-y = {{ dotfiles_values.ghostty.window.padding_y }}
+window-padding-balance = true
+window-step-resize = false
+background-opacity = 1
+background-blur = false
+unfocused-split-opacity = 1
+
+# macOS
+macos-titlebar-style = transparent
+macos-titlebar-proxy-icon = hidden
+macos-window-buttons = visible
+macos-window-shadow = true
+macos-dock-drop-behavior = new-tab
+macos-hidden = never
+macos-icon = {{ dotfiles_values.ghostty.macos.icon }}
+quit-after-last-window-closed = true
+
+# Shell
+shell-integration = detect

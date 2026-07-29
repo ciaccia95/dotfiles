@@ -1,0 +1,13 @@
+---
+- name: Validate tmux configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ tmux_executable }}"
+      - -L
+      - dotfiles-validation
+      - -f
+      - "{{ tmux_destination_directory }}/tmux.conf"
+      - start-server
+      - ";"
+      - kill-server
+  changed_when: false

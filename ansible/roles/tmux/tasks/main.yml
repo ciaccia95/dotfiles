@@ -2,20 +2,51 @@
 - name: Ensure tmux is installed
   ansible.builtin.command:
     argv:
-      - tmux
+      - "{{ tmux_executable }}"
       - -V
   register: tmux_version
   changed_when: false
+
+- name: Verify tmux source configuration
+  ansible.builtin.stat:
+    path: "{{ tmux_source_directory }}/tmux.conf"
+  delegate_to: localhost
+  become: false
+  register: tmux_source_config
+  failed_when:
+    - not tmux_source_config.stat.exists
+      or not tmux_source_config.stat.isreg
+
+- name: Inspect existing tmux configuration
+  ansible.builtin.stat:
+    path: "{{ tmux_destination_directory }}"
+    follow: false
+  register: tmux_destination
+
+- name: Refuse to replace an unmanaged tmux symlink
+  ansible.builtin.assert:
+    that:
+      - not tmux_destination.stat.islnk | default(false)
+    fail_msg: >-
+      {{ tmux_destination_directory }} is a symbolic link.
+      Replace it explicitly before allowing Ansible to manage this directory.
 
 - name: Ensure tmux configuration directory exists
   ansible.builtin.file:
     path: "{{ tmux_destination_directory }}"
     state: directory
-    mode: "0755"
+    mode: "{{ dotfiles_values.deployment.directory_mode }}"
+
+- name: Remove obsolete tmux configuration files
+  ansible.builtin.file:
+    path: "{{ tmux_destination_directory }}/{{ item }}"
+    state: absent
+  loop: "{{ tmux_obsolete_files }}"
 
 - name: Deploy tmux configuration
   ansible.builtin.copy:
     src: "{{ tmux_source_directory }}/"
     dest: "{{ tmux_destination_directory }}/"
     mode: preserve
-    directory_mode: "0755"
+    directory_mode: "{{ dotfiles_values.deployment.directory_mode }}"
+  notify: Validate tmux configuration

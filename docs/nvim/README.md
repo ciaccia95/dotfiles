@@ -14,7 +14,7 @@ be deliberate and tested.
 ## File layout and load order
 
 ```text
-nvim/.config/nvim/
+configs/nvim/
 ├── init.lua
 └── lua/
     └── antonello/
@@ -37,22 +37,29 @@ nvim/.config/nvim/
 
 ## Installation
 
-From the repository root, preview the Stow operation and then create the link:
+Deploy only Neovim from the Ansible directory:
 
 ```bash
-stow --no --verbose --target="$HOME" nvim
-stow --target="$HOME" nvim
+cd ansible
+ansible-playbook playbooks/dotfiles.yml --tags nvim --check --diff
+ansible-playbook playbooks/dotfiles.yml --tags nvim
 ```
 
 This maps:
 
 ```text
-nvim/.config/nvim/init.lua
-  └── ~/.config/nvim/init.lua
+configs/nvim/init.lua
+  └── $XDG_CONFIG_HOME/nvim/init.lua
 ```
 
-If `~/.config/nvim` already contains files, Stow stops instead of overwriting
-them. Review and move the existing configuration before retrying.
+When XDG is unset on the managed host, Ansible uses `~/.config/nvim`. Pass a
+remote inventory with `-i` to deploy the same source over SSH. The role refuses
+to replace a symbolic-link configuration directory implicitly.
+
+On Debian, Red Hat and SUSE family Linux targets, the `nvim` workflow installs
+the configured `neovim` package first using the native package manager and
+privilege escalation. On non-Linux targets it only verifies the existing
+executable.
 
 ## Design decisions
 
@@ -240,7 +247,7 @@ Load the repository configuration without using the installed home-directory
 link:
 
 ```bash
-XDG_CONFIG_HOME="$PWD/nvim/.config" \
+XDG_CONFIG_HOME="$PWD/configs" \
   nvim --headless -i NONE -n \
   "+lua print('configuration loaded')" +qa
 ```

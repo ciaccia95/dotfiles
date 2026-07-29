@@ -1,4 +1,10 @@
 ---
+- name: Require a macOS target
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['system'] == "Darwin"
+    fail_msg: "Ghostty is supported only on macOS targets."
+
 - name: Ensure Ghostty is installed
   ansible.builtin.command:
     argv:
@@ -6,13 +12,21 @@
       - --version
   changed_when: false
 
-- name: Verify Ghostty source configuration
+- name: Verify Ghostty source template
   ansible.builtin.stat:
-    path: "{{ ghostty_source_directory }}/config"
-  register: ghostty_source_config
+    path: "{{ ghostty_source_template }}"
+  delegate_to: localhost
+  become: false
+  register: ghostty_source
   failed_when:
-    - not ghostty_source_config.stat.exists
-      or not ghostty_source_config.stat.isreg
+    - not ghostty_source.stat.exists
+      or not ghostty_source.stat.isreg
+
+- name: Ensure the XDG configuration root exists
+  ansible.builtin.file:
+    path: "{{ dotfiles_xdg_config_home }}"
+    state: directory
+    mode: "{{ dotfiles_values.deployment.directory_mode }}"
 
 - name: Inspect existing Ghostty configuration
   ansible.builtin.stat:
@@ -23,30 +37,25 @@
 - name: Refuse to replace an unmanaged Ghostty symlink
   ansible.builtin.assert:
     that:
-      - >
-        not ghostty_destination.stat.islnk | default(false)
-        or (ghostty_destination.stat.lnk_source | realpath)
-        == (ghostty_source_directory | realpath)
+      - not ghostty_destination.stat.islnk | default(false)
     fail_msg: >-
-      {{ ghostty_destination_directory }} is a symlink to an unmanaged target.
-      Review it before running the playbook again.
-
-- name: Remove managed Ghostty configuration symlink
-  ansible.builtin.file:
-    path: "{{ ghostty_destination_directory }}"
-    state: absent
-  when: ghostty_destination.stat.islnk | default(false)
+      {{ ghostty_destination_directory }} is a symbolic link.
+      Replace it explicitly before allowing Ansible to manage this directory.
 
 - name: Ensure Ghostty configuration directory exists
   ansible.builtin.file:
     path: "{{ ghostty_destination_directory }}"
     state: directory
-    mode: "0755"
+    mode: "{{ dotfiles_values.deployment.directory_mode }}"
 
-- name: Deploy Ghostty configuration
-  ansible.builtin.copy:
-    src: "{{ ghostty_source_directory }}/"
-    dest: "{{ ghostty_destination_directory }}/"
-    mode: preserve
-    directory_mode: "0755"
+- name: Remove the legacy modular Ghostty configuration
+  ansible.builtin.file:
+    path: "{{ ghostty_destination_directory }}/conf.d"
+    state: absent
+
+- name: Render Ghostty configuration
+  ansible.builtin.template:
+    src: "{{ ghostty_source_template }}"
+    dest: "{{ ghostty_destination_directory }}/config"
+    mode: "{{ dotfiles_values.deployment.file_mode }}"
   notify: Validate Ghostty configuration

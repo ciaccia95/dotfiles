@@ -1,379 +1,257 @@
 # Ghostty
 
-Ghostty is the local terminal layer of this environment. It owns macOS windows,
-tabs and local splits, launches local command-line tools, and provides the SSH
-entry point to remote Linux systems. It does not replace tmux for persistent
-remote work.
-
-This guide documents every setting owned by the repository, how the files are
-loaded, how to install and inspect the package, and which Ghostty defaults are
-intentionally left unchanged.
+Ghostty is the local macOS terminal layer. It owns native windows, tabs and
+splits, launches local command-line tools, and provides the SSH entry point to
+remote systems. Persistent remote work belongs to tmux.
 
 ## Supported baseline
 
-The configuration has been validated with:
+The configuration is validated with:
 
-- Ghostty 1.3.1, stable channel;
-- macOS with the Core Text font engine and Metal renderer;
+- Ghostty 1.3.1 on macOS;
 - `JetBrainsMono Nerd Font Mono`;
-- the built-in `Nightfox` theme.
+- Ghostty's built-in `Broadcast` theme.
 
-Ghostty's `config` filename is retained because it is supported by the current
-version and keeps the existing Stow path stable. Recent Ghostty versions also
-recognize the preferred `config.ghostty` filename.
+The repository uses a complete built-in theme without palette overrides.
+Typography and window geometry are exposed as Ansible values because they are
+the settings most likely to vary between displays or machines.
 
-## File layout and load order
+## Source and generated file
 
 ```text
-ghostty/.config/ghostty/
-├── config
-└── conf.d/
-    ├── 10-font.conf
-    ├── 20-theme.conf
-    ├── 30-window.conf
-    ├── 40-macos.conf
-    ├── 50-keybindings.conf
-    ├── 60-shell.conf
-    ├── 90-local.conf.example
-    └── 90-local.conf
+configs/ghostty/config.ghostty.j2
+        │
+        │ Ansible template + merged values
+        ▼
+$XDG_CONFIG_HOME/ghostty/config
 ```
 
-| File | Responsibility |
-| --- | --- |
-| `config` | Entry point and ordered includes |
-| `10-font.conf` | Font selection, OpenType features and rendering |
-| `20-theme.conf` | Theme, contrast, cursor and selection colors |
-| `30-window.conf` | Initial size, padding, resizing and background |
-| `40-macos.conf` | Native macOS window, Dock and application behavior |
-| `50-keybindings.conf` | Binding policy; no custom bindings at present |
-| `60-shell.conf` | Shell detection and automatic integration |
-| `90-local.conf.example` | Versioned examples for machine-specific settings |
-| `90-local.conf` | Optional, ignored overrides for the current machine |
+The repository path is deliberately visible and does not mirror `~/.config`.
+The generated `config` filename is supported by the validated Ghostty version.
 
-Included files are processed in the declared order. A value loaded later wins
-when the same scalar option appears more than once. The optional `?` prefix on
-`90-local.conf` prevents an error when the file does not exist.
+The template is a concise runtime configuration, not an option catalogue.
+Rationale and lifecycle notes live in this document instead of surrounding
+every setting with large comment blocks.
 
-The entry point uses the repeatable `config-file` option for every include.
-Relative values are resolved from the file containing the directive, so the
-package remains portable even when the repository is moved. The six shared
-files are required; `?conf.d/90-local.conf` is the only optional include.
+## Deployment
 
-## Installation
-
-From the repository root, preview the links before creating them:
+Ghostty carries Ansible's special `never` tag. It is not part of an ordinary
+playbook run and must be requested explicitly:
 
 ```bash
-stow --no --verbose --target="$HOME" ghostty
-stow --target="$HOME" ghostty
+cd ansible
+ansible-playbook playbooks/dotfiles.yml --tags ghostty --check --diff
+ansible-playbook playbooks/dotfiles.yml --tags ghostty
 ```
 
-The explicit target matters because the repository is stored below
-`~/Projects`; Stow otherwise targets the repository's parent directory.
-
-Stow stops when a real file already occupies a destination. Review and move any
-existing Ghostty configuration before retrying. Do not use `stow --adopt`
-without reviewing the resulting repository diff, because it can replace
-versioned content with the destination's content.
-
-The configured font must be visible to Ghostty:
+The role rejects non-macOS targets and symbolic-link destination directories.
+It renders the template into the target user's XDG configuration root, removes
+the repository's previous `conf.d` layout, and validates the result with:
 
 ```bash
-ghostty +list-fonts | rg "JetBrainsMono Nerd Font Mono"
+ghostty +show-config --changes-only
 ```
+
+## Values
+
+Canonical values live in `ansible/values.yml`:
+
+```yaml
+ghostty:
+  executable: /Applications/Ghostty.app/Contents/MacOS/ghostty
+  theme: Broadcast
+  font:
+    family: JetBrainsMono Nerd Font Mono
+    size: 15
+  window:
+    width: 120
+    height: 36
+    padding_x: 10
+    padding_y: 8
+  macos:
+    icon: xray
+```
+
+To change only machine-specific leaves, copy the override example and load it
+as extra vars:
+
+```bash
+cp values.example.yml values.local.yml
+ansible-playbook \
+  playbooks/dotfiles.yml \
+  --tags ghostty \
+  -e @values.local.yml
+```
+
+The override map is recursively merged. For example, changing only font size
+does not require repeating the theme or window settings:
+
+```yaml
+---
+dotfiles_overrides:
+  ghostty:
+    font:
+      size: 16
+...
+```
+
+`values.local.yml` is ignored by Git. It must not contain credentials or other
+secrets.
 
 ## Configuration reference
 
-### Font and rendering
+### Typography
 
-Source: `conf.d/10-font.conf`.
-
-| Option | Value | Decision |
+| Option | Default | Purpose |
 | --- | --- | --- |
-| `font-family` | `JetBrainsMono Nerd Font Mono` | Uses JetBrains Mono plus Nerd Font glyphs required by terminal interfaces |
-| `font-size` | `15` | Balances readability and usable space on a MacBook display |
+| `font-family` | `JetBrainsMono Nerd Font Mono` | Readable monospace family with glyphs used by terminal interfaces |
+| `font-size` | `15` | Balanced size for a MacBook display |
 | `font-feature` | `calt` | Keeps contextual alternates and programming ligatures enabled |
-| `font-thicken` | `false` | Uses the font's native stroke weight instead of macOS-only artificial thickening |
-| `adjust-cell-height` | unset | Preserves the font's native vertical cell metric |
-| `adjust-cell-width` | unset | Preserves the font's native horizontal cell metric |
+| `font-thicken` | `false` | Preserves the font's native stroke weight |
 
-Bold, italic and bold-italic families are not pinned. Ghostty searches the
-selected family for those variants and falls back to the regular face when
-needed. Cell-height and cell-width adjustments are also left unset until a
-measurable clipping or alignment problem appears.
+Bold and italic families are not pinned. Ghostty selects matching faces from
+the configured family. Cell width and height adjustments are also left unset,
+preserving the font's native metrics.
 
-`font-size` is expressed in points. Reloading it updates existing terminals
-unless their size was already changed manually with a font-size shortcut.
+### Theme
 
-### Theme and accessibility
-
-Source: `conf.d/20-theme.conf`.
-
-| Option | Value | Decision |
+| Option | Default | Purpose |
 | --- | --- | --- |
-| `theme` | `Nightfox` | Uses the complete built-in theme without color overrides |
+| `theme` | `Broadcast` | Loads one coherent, built-in dark palette |
 
 No `background`, `foreground`, `palette`, `cursor-*`, `selection-*` or
-`minimum-contrast` option is set by this repository. Nightfox owns the entire
-color system, so its internal relationships are not altered after loading.
+`minimum-contrast` values are added after the theme. Broadcast owns the entire
+color system, including ANSI colors used by shells and terminal applications.
 
-The resolved Nightfox colors relevant to the current terminal workflow are:
-
-| Role | Color | Contrast against its background |
-| --- | --- | --- |
-| Terminal background | `#192330` | Not applicable |
-| Default foreground and regular files | `#cdcecf` | 10.06:1 |
-| ANSI cyan and directories | `#63cdcf` | 8.43:1 |
-| ANSI magenta and symbolic links | `#9d79d6` | 4.64:1 |
-| Selection | `#cdcecf` on `#2b3b51` | 7.21:1 |
-| Cursor | `#cdcecf` on `#192330` | 10.06:1 |
-
-Ghostty does not decide whether a path is a file, directory or symbolic link.
-The listing program assigns an ANSI color and Ghostty renders that ANSI index
-through the theme. In the current shell, `LS_COLORS` maps directories to bold
-cyan (`di=1;36`) and symbolic links to magenta (`ln=35`); regular files use the
-default foreground. This is why the three Nightfox colors above determine
-their visual separation.
-
-Color is not the only way to verify a file type. With `ls -l`, a directory
-starts with `d`, a symbolic link starts with `l` and includes `->`, and a
-regular file starts with `-`.
+Ghostty renders ANSI colors but does not determine whether an `ls` entry is a
+file, directory or symbolic link. That semantic mapping belongs to the listing
+tool and `LS_COLORS`. Use `ls -l` when file type must be communicated without
+color: directories begin with `d`, links with `l` and `->`, and regular files
+with `-`.
 
 ### Window
 
-Source: `conf.d/30-window.conf`.
-
-| Option | Value | Decision |
+| Option | Default | Purpose |
 | --- | --- | --- |
-| `window-width` | `120` | Creates new windows 120 terminal cells wide |
-| `window-height` | `36` | Creates new windows 36 terminal cells high |
-| `window-padding-x` | `10` | Adds 10 points on the left and right |
-| `window-padding-y` | `8` | Adds 8 points above and below the terminal grid |
-| `window-padding-balance` | `true` | Distributes leftover cell-grid space across all edges |
-| `window-step-resize` | `false` | Resizes in pixels instead of snapping to cell increments |
-| `background-opacity` | `1` | Keeps the terminal fully opaque |
-| `background-blur` | `false` | Avoids unnecessary blur and its rendering cost |
-| `unfocused-split-opacity` | `1` | Prevents inactive Ghostty splits from being faded |
+| `window-width` | `120` | Initial width in terminal cells |
+| `window-height` | `36` | Initial height in terminal cells |
+| `window-padding-x` | `10` | Horizontal breathing room |
+| `window-padding-y` | `8` | Vertical breathing room |
+| `window-padding-balance` | `true` | Distributes unused cell-grid space evenly |
+| `window-step-resize` | `false` | Uses normal pixel-based macOS resizing |
+| `background-opacity` | `1` | Keeps contrast predictable |
+| `background-blur` | `false` | Avoids unnecessary rendering work |
+| `unfocused-split-opacity` | `1` | Keeps inactive split text fully readable |
 
-Both width and height must be present for the initial size to take effect. They
-apply only when a new window is created; they do not resize existing windows,
-tabs or splits. macOS can still restore a previously saved window size.
-
-Padding is measured in points and changes apply to newly created terminals.
-Balanced padding runs after the explicit padding and distributes space that
-does not fit a complete terminal cell.
-
-Changing `background-opacity` requires a complete Ghostty restart on macOS.
-Blur has no visible purpose while opacity is `1`.
+Initial dimensions affect new windows. Padding affects newly created terminal
+surfaces. Background opacity changes require a full Ghostty restart on macOS.
 
 ### macOS integration
 
-Source: `conf.d/40-macos.conf`.
-
-| Option | Value | Decision |
+| Option | Default | Purpose |
 | --- | --- | --- |
-| `macos-titlebar-style` | `transparent` | Keeps the native frame while extending the terminal background into the title bar |
-| `macos-titlebar-proxy-icon` | `hidden` | Removes the current-directory proxy icon |
-| `macos-window-buttons` | `visible` | Preserves the standard traffic-light controls |
-| `quit-after-last-window-closed` | `true` | Exits Ghostty when its last window closes |
+| `macos-titlebar-style` | `transparent` | Extends the theme into the native title bar |
+| `macos-titlebar-proxy-icon` | `hidden` | Removes the Finder-style path icon |
+| `macos-window-buttons` | `visible` | Preserves native traffic-light controls |
+| `macos-window-shadow` | `true` | Preserves normal window depth |
+| `macos-dock-drop-behavior` | `new-tab` | Opens Dock-dropped paths in a new tab |
 | `macos-hidden` | `never` | Keeps Ghostty in the Dock and application switcher |
-| `macos-icon` | `xray` | Selects the official X-ray runtime icon variant |
-| `macos-window-shadow` | `true` | Preserves the standard native window shadow |
-| `macos-dock-drop-behavior` | `new-tab` | Opens Dock-dropped files or directories in a new tab when possible |
+| `macos-icon` | `xray` | Uses Ghostty's X-ray runtime icon |
+| `quit-after-last-window-closed` | `true` | Exits after the final window closes |
 
-The runtime icon affects the Dock and application switcher, not the signed icon
-stored in the application bundle. The proxy-icon setting becomes observable
-after a working-directory change. Title-bar style and window-button changes
-apply only to new windows.
+The icon value affects runtime macOS surfaces, not the signed application
+bundle. Title-bar changes apply to new windows. Hiding the proxy icon becomes
+visible after Ghostty observes a working-directory change.
 
-Closing the last local window also terminates processes that do not own their
-own persistence. Remote work that must survive disconnection belongs inside
-tmux on the remote host.
+Closing the last window also ends local processes that do not own their own
+persistence. Remote work that must survive disconnection belongs inside tmux.
+
+### Shell integration
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `shell-integration` | `detect` | Detects the login shell and injects supported integration |
+
+The shell command is intentionally unset, so Ghostty launches the user's
+configured login shell. `PATH`, `EDITOR` and tool-specific environment
+variables remain shell responsibilities.
+
+Automatic integration provides working-directory inheritance, prompt
+boundaries, prompt-aware close confirmation and better redraw behavior. A
+manually started nested shell may require its own integration setup.
 
 ### Keybindings
 
-Source: `conf.d/50-keybindings.conf`.
+The repository defines no custom Ghostty keybindings. Native defaults remain
+available for windows, tabs, splits, search, clipboard, font size and the
+command palette without competing with Neovim or tmux mappings.
 
-No custom `keybind` entries are defined. Ghostty's macOS defaults are preserved
-so the terminal follows native conventions and does not pre-empt planned
-Neovim or tmux mappings.
-
-The main effective defaults in Ghostty 1.3.1 are:
-
-| Area | Binding | Action |
-| --- | --- | --- |
-| Configuration | `Command+,` | Open the configuration |
-| Configuration | `Command+Shift+,` | Reload the configuration |
-| Commands | `Command+Shift+P` | Toggle the command palette |
-| Windows | `Command+N` | Create a window |
-| Windows | `Command+W` | Close the focused surface |
-| Windows | `Command+Enter` | Toggle fullscreen |
-| Tabs | `Command+T` | Create a tab |
-| Tabs | `Command+Shift+[` / `Command+Shift+]` | Select the previous or next tab |
-| Tabs | `Command+1` through `Command+8` | Select a numbered tab |
-| Tabs | `Command+9` | Select the last tab |
-| Splits | `Command+D` | Create a split to the right |
-| Splits | `Command+Shift+D` | Create a split below |
-| Splits | `Command+[` / `Command+]` | Select the previous or next split |
-| Splits | `Command+Option+Arrow` | Select a split by direction |
-| Splits | `Command+Control+Arrow` | Resize a split by 10 pixels |
-| Splits | `Command+Control+=` | Equalize split sizes |
-| Splits | `Command+Shift+Enter` | Toggle focused-split zoom |
-| Clipboard | `Command+C` / `Command+V` | Copy or paste |
-| Search | `Command+F` | Start search |
-| Search | `Command+G` / `Command+Shift+G` | Select the next or previous match |
-| Scrollback | `Command+Up` / `Command+Down` | Jump between shell prompts |
-| Font | `Command++` / `Command+-` | Increase or decrease font size |
-| Font | `Command+0` | Reset font size |
-
-The complete version-specific list is generated rather than copied into this
-repository:
+Inspect the exact bindings supplied by the installed version:
 
 ```bash
 ghostty +list-keybinds
 ghostty +list-keybinds --default
 ```
 
-Custom bindings must be checked against macOS shortcuts, shell sequences,
-Neovim mappings and the tmux prefix before they are added.
-
-### Shell integration
-
-Source: `conf.d/60-shell.conf`.
-
-| Option | Value | Decision |
-| --- | --- | --- |
-| `command` | unset | Uses the user's configured login shell instead of a machine-specific path |
-| `shell-integration` | `detect` | Detects a supported shell and injects the matching Ghostty integration |
-| `shell-integration-features` | unset | Follows Ghostty's version-specific feature defaults |
-| `env` | unset | Leaves `PATH`, `EDITOR` and tool variables to the shell configuration |
-
-Automatic shell integration provides working-directory inheritance, prompt
-boundaries, prompt-aware close confirmation and better redraw behavior for
-complex prompts. On macOS, the initial shell is launched as a login shell.
-
-The available feature switches in Ghostty 1.3.1 are `cursor`, `sudo`, `title`,
-`ssh-env`, `ssh-terminfo` and `path`; prefixing a feature with `no-` disables
-it. They remain unpinned here so a feature is changed only for a concrete
-workflow requirement.
-
-Automatic injection applies to the initial supported shell. Starting another
-shell manually inside it can lose the integration unless that shell sources
-Ghostty's integration script itself.
-
-### Machine-specific overrides
-
-`conf.d/90-local.conf.example` documents supported override patterns.
-Create the ignored file only when the current Mac needs a different value:
-
-```bash
-cp ghostty/.config/ghostty/conf.d/90-local.conf.example \
-  ghostty/.config/ghostty/conf.d/90-local.conf
-```
-
-Because it loads last, `90-local.conf` can override font size, initial window
-dimensions, contrast, opacity, Option-key behavior or the shell command without
-changing shared files.
-
-| Example option | Intended local use |
-| --- | --- |
-| `font-size` | Adapt text size to a specific display |
-| `window-width`, `window-height` | Adapt the initial grid to a specific screen |
-| `minimum-contrast` | Compensate for a display with weak low-intensity colors |
-| `background-opacity` | Enable verified, machine-specific transparency |
-| `macos-option-as-alt` | Reserve one Option key for terminal Alt sequences |
-| `command` | Launch a different shell on one machine |
-
-The file is ignored to keep host details out of version control, but it is not
-a secret store. Credentials, tokens and private keys do not belong there.
-
 ## Daily operations
 
-Run these commands from a shell launched by Ghostty:
-
 ```bash
-# Confirm the installed version.
+# Installed version.
 ghostty --version
 
-# Show only effective values that differ from Ghostty defaults.
+# Effective non-default configuration.
 ghostty +show-config --changes-only
 
-# Read the complete offline option reference for the installed version.
+# Complete offline option reference.
 ghostty +show-config --default --docs | less
 
-# Inspect available fonts, themes and bindings.
+# Available fonts, themes and bindings.
 ghostty +list-fonts
 ghostty +list-themes
 ghostty +list-keybinds
 ```
 
-Shell integration normally makes the CLI available on `PATH`. From a shell
-outside Ghostty on macOS, the application-bundle executable can be used
+Outside a Ghostty-launched shell on macOS, call the application executable
 directly:
 
 ```bash
 /Applications/Ghostty.app/Contents/MacOS/ghostty --version
 ```
 
-Use `Command+Shift+,` to reload after an edit. Options with stricter lifecycle
-rules are summarized below:
-
-| Change | When it takes effect |
-| --- | --- |
-| Font size | On reload, except terminals manually zoomed |
-| Initial width and height | New windows only |
-| Window padding | New terminals only |
-| Title-bar style and window buttons | New windows only |
-| Proxy icon visibility | After the working directory changes |
-| Background opacity on macOS | After fully restarting Ghostty |
+Use `Command+Shift+,` to reload ordinary changes.
 
 ## Troubleshooting
 
 ### Configuration does not load
 
-Run `ghostty +show-config --changes-only` and inspect Ghostty's configuration
-error window. Confirm that `config` exists below the active XDG configuration
-directory and that relative `conf.d` paths remain beside it.
+Run `ghostty +show-config --changes-only`. Confirm that `config` exists below
+the active XDG configuration root and rerun the explicit Ansible tag.
 
-### Font falls back or symbols are missing
+### Font or Nerd Font symbols are missing
 
-Confirm the exact family name with `ghostty +list-fonts`. Font family names are
-not filenames, and spelling or style suffixes must match the value Ghostty
-reports.
+Check the exact family name:
+
+```bash
+ghostty +list-fonts | rg "JetBrainsMono Nerd Font Mono"
+```
+
+Font family names are not filenames and must match Ghostty's reported name.
 
 ### Theme is unavailable
 
-Run `ghostty +list-themes` and check the case-sensitive name. The configured
-theme is bundled with the validated Ghostty version.
+Run `ghostty +list-themes | rg '^Broadcast'`. Theme names are case-sensitive
+and depend on the installed Ghostty release.
 
-### Reload appears to do nothing
+### A change appears to do nothing
 
-Check the lifecycle table above. Create a new window or terminal for
-new-surface settings, and fully quit Ghostty for background-opacity changes on
-macOS.
-
-### Shell integration is missing
-
-Confirm that the active shell is supported and initially launched by Ghostty.
-For nested or renamed shells, follow Ghostty's manual integration instructions
-instead of forcing unrelated environment variables in this package.
+Reload the configuration first. Create a new window for initial geometry or
+title-bar settings, and fully quit Ghostty for background-opacity changes.
 
 ## Upgrade checklist
 
-When Ghostty is upgraded:
-
-1. Read the release notes between the old and new versions.
-2. Run `ghostty +show-config --changes-only` and resolve every warning.
-3. Confirm the font and theme still exist with their list commands.
-4. Review default keybindings and shell-integration features for changes.
-5. Test configuration reload, a new window, tabs, splits and shell-directory
-   inheritance.
-6. Update the supported baseline in this document after validation.
-
-## Upstream documentation
-
-- [Configuration format and file loading](https://ghostty.org/docs/config)
-- [Configuration option reference](https://ghostty.org/docs/config/reference)
-- [Keybindings](https://ghostty.org/docs/config/keybind)
-- [Shell integration](https://ghostty.org/docs/features/shell-integration)
-- [Ghostty 1.3.1 release notes](https://ghostty.org/docs/install/release-notes/1-3-1)
+1. Read the Ghostty release notes for renamed or removed options.
+2. Confirm that `Broadcast` and the configured font remain available.
+3. Run the Ansible check and deployment commands with `--tags ghostty`.
+4. Inspect `ghostty +show-config --changes-only`.
+5. Test reload, a new window, tabs, splits, clipboard and shell integration.
+6. Update the supported baseline only after validation succeeds.

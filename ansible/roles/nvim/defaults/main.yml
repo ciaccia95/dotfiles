@@ -1,4 +1,5 @@
 ---
-nvim_source_directory: "{{ (playbook_dir ~ '/../../nvim/.config/nvim') | realpath }}"
-nvim_destination_directory: "{{ ansible_facts['env']['HOME'] }}/.config/nvim"
+nvim_source_directory: "{{ dotfiles_source_root }}/nvim"
+nvim_destination_directory: "{{ dotfiles_xdg_config_home }}/nvim"
+nvim_executable: "{{ dotfiles_values.nvim.executable }}"
 ...

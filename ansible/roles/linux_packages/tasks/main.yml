@@ -1,0 +1,30 @@
+---
+- name: Validate the Linux distribution family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] in dotfiles_values.linux.packages
+    fail_msg: >-
+      Unsupported Linux family: {{ ansible_facts['os_family'] }}.
+      Supported families are Debian, RedHat and Suse.
+  when: ansible_facts['system'] == "Linux"
+  tags:
+    - nvim
+    - tmux
+
+- name: Install Neovim on Linux
+  ansible.builtin.package:
+    name: "{{ dotfiles_values.linux.packages[ansible_facts['os_family']].nvim }}"
+    state: present
+  become: "{{ dotfiles_values.linux.become }}"
+  when: ansible_facts['system'] == "Linux"
+  tags:
+    - nvim
+
+- name: Install tmux on Linux
+  ansible.builtin.package:
+    name: "{{ dotfiles_values.linux.packages[ansible_facts['os_family']].tmux }}"
+    state: present
+  become: "{{ dotfiles_values.linux.become }}"
+  when: ansible_facts['system'] == "Linux"
+  tags:
+    - tmux

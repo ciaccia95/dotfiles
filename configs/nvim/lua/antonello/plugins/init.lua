@@ -1,0 +1,1 @@
+-- Plugin loading is intentionally deferred until a concrete need is defined.

@@ -96,26 +96,40 @@ packages are introduced.
 
 ## Deployment model
 
-Each top-level tool directory is a GNU Stow package. Its internal paths mirror
-the destination below the user's home directory:
+Configuration sources use visible, application-oriented paths:
 
 ```text
-nvim/.config/nvim/init.lua
-  └── ~/.config/nvim/init.lua
+configs/nvim/init.lua
+configs/ghostty/config.ghostty.j2
+configs/tmux/tmux.conf
 ```
 
-Packages are installed selectively. A macOS workstation needs Ghostty and
-Neovim; a Linux server needs Neovim and tmux. With the repository stored in
-`~/Projects/dotfiles`, commands must set the home directory as the target:
+Ansible maps these sources into the target user's XDG configuration root:
 
-```bash
-stow --target="$HOME" ghostty nvim
-stow --target="$HOME" nvim tmux
+```text
+configs/nvim/    → $XDG_CONFIG_HOME/nvim/
+configs/ghostty/ → $XDG_CONFIG_HOME/ghostty/
+configs/tmux/    → $XDG_CONFIG_HOME/tmux/
 ```
 
-Installation scripts may wrap these commands later, but Stow remains the
-underlying linking mechanism. Scripts must be safe to run repeatedly and must
-offer a preview or clear diagnostic when an existing file blocks a link.
+When `XDG_CONFIG_HOME` is unset, the destination is `~/.config`. The source
+always lives on the Ansible controller; the destination may be the controller
+itself or a remote inventory host.
+
+The default local inventory uses `ansible_connection: local`. Remote
+inventories select SSH targets without changing the playbook. All roles can be
+selected by tags. Neovim and tmux run by default; Ghostty carries the special
+`never` tag and runs only when `--tags ghostty` is requested.
+
+On Linux, a bootstrap role installs Neovim and tmux before deploying their
+configuration. It supports the Debian, Red Hat and SUSE operating-system
+families through Ansible's package abstraction and uses privilege escalation
+only for package tasks. Non-Linux targets never execute package installation.
+
+Settings that reasonably vary between machines live in
+`ansible/values.yml`. An ignored override file is recursively merged over
+those defaults, following the same default-values-plus-overrides model used by
+Helm.
 
 ## Failure and recovery model
 
@@ -134,12 +148,11 @@ then remote session management. New options require a clear purpose; new
 plugins require a concrete use case.
 
 General-purpose scripts, Git configuration, shell configuration and lazygit
-may become separate Stow packages. Project-specific automation, infrastructure
-templates and training material remain outside this repository.
+may become separate managed components. Project-specific automation,
+infrastructure templates and training material remain outside this repository.
 
 ## Current status
 
-The directory layout and architectural responsibilities are established.
-Ghostty and the plugin-free Neovim core are implemented and documented. The
-Neovim plugin layer and tmux configuration remain scaffolds and will be
-implemented incrementally.
+Ghostty, the plugin-free Neovim core, the tmux server foundation and their
+Ansible deployment are implemented. The Neovim plugin layer and the remaining
+tmux interaction modules will be introduced only for concrete workflows.

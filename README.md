@@ -1,92 +1,158 @@
 # dotfiles
 
-Reproducible development and operations environment built around Ghostty,
-Neovim and tmux.
+A small, reproducible terminal environment for local macOS development and
+persistent work on remote Linux systems.
 
-This repository contains version-controlled configuration for a local macOS
-development environment and remote Linux operations environments. It is kept
-intentionally small: tools and plugins are added only when they solve a
-concrete problem.
+Configuration sources stay easy to find under `configs/`. Ansible installs
+them into the target user's XDG paths, locally or over SSH.
 
-## Architecture
+## At a glance
+
+| Layer | Tool | Responsibility |
+| --- | --- | --- |
+| Local terminal | Ghostty | Native macOS windows, tabs, splits and SSH entrypoint |
+| Editor | Neovim | Shared, plugin-free editing core for macOS and Linux |
+| Remote workspace | tmux | Persistent Linux sessions that survive SSH disconnects |
+| Deployment | Ansible | Package installation, XDG mapping and configuration validation |
 
 ```text
 macOS
 └── Ghostty
     ├── Neovim
-    ├── lazygit
-    ├── shell
     └── SSH
-        └── Linux server
+        └── Linux
             └── tmux
                 ├── Neovim
                 ├── operational tools
                 └── long-running sessions
 ```
 
-Ghostty owns the local terminal experience. tmux owns persistent remote
-workspaces and remains optional on macOS. Neovim configuration is shared
-between macOS and Linux wherever possible.
+## Quick start
 
-See [Architecture](docs/architecture.md) for responsibilities and boundaries.
-Component guides document the complete [Ghostty](docs/ghostty/README.md) and
-[Neovim](docs/nvim/README.md) configurations.
+Run Ansible from its directory so the repository configuration and default
+local inventory are discovered:
 
-## Principles
+```bash
+cd ansible
 
-- Every non-obvious option has a documented purpose.
-- Local and remote responsibilities remain separate.
-- Configuration is reproducible and can be installed selectively.
-- Secrets and environment-specific data are never committed.
-- Platform-specific behavior is detected explicitly.
-- Plugins are introduced only when they solve a concrete problem.
+# Preview Neovim and tmux.
+ansible-playbook playbooks/dotfiles.yml --check --diff
 
-## Repository structure
+# Apply Neovim and tmux.
+ansible-playbook playbooks/dotfiles.yml
+```
+
+Ghostty is intentionally opt-in and never runs as part of the default play:
+
+```bash
+ansible-playbook playbooks/dotfiles.yml --tags ghostty
+```
+
+Every changed configuration is validated with its native application. A second
+run should finish with `changed=0`.
+
+## Remote Linux
+
+Create an ignored inventory from the example:
+
+```bash
+cd ansible
+cp inventory/remote.example.yml inventory/remote.yml
+```
+
+Set the host and user, then run:
+
+```bash
+ansible-playbook \
+  -i inventory/remote.yml \
+  playbooks/dotfiles.yml \
+  --limit workstation \
+  --ask-become-pass
+```
+
+On Linux, Ansible installs Neovim and tmux before deploying their
+configuration. Debian, Red Hat and SUSE operating-system families are
+supported through their native package managers. On non-Linux systems,
+package installation is skipped.
+
+Packages must be available in repositories enabled on the target. RHEL may
+require a suitable supplemental repository for Neovim.
+
+## Select components
+
+| Command | Result |
+| --- | --- |
+| `ansible-playbook playbooks/dotfiles.yml` | Neovim and tmux |
+| `ansible-playbook playbooks/dotfiles.yml --tags nvim` | Neovim package and configuration |
+| `ansible-playbook playbooks/dotfiles.yml --tags tmux` | tmux package and configuration |
+| `ansible-playbook playbooks/dotfiles.yml --tags ghostty` | Ghostty configuration on macOS |
+
+Ghostty carries Ansible's special `never` tag. It runs only when `ghostty` is
+requested explicitly.
+
+## Values
+
+Stable defaults live in [`ansible/values.yml`](ansible/values.yml). They cover:
+
+- XDG destination and file modes;
+- executable and Linux package names;
+- Ghostty theme, font, initial window size, padding and icon.
+
+Use an ignored override file for machine-specific values:
+
+```bash
+cd ansible
+cp values.example.yml values.local.yml
+
+ansible-playbook \
+  playbooks/dotfiles.yml \
+  --tags ghostty \
+  -e @values.local.yml
+```
+
+Overrides are merged recursively, so only changed leaves need to be repeated.
+
+## Repository
 
 ```text
 .
-├── ghostty/   Ghostty configuration for macOS
-├── nvim/      Shared Neovim configuration
-├── tmux/      tmux configuration, primarily for remote Linux systems
-├── docs/      Architecture and workflow documentation
-└── scripts/   Installation and maintenance utilities
+├── configs/
+│   ├── ghostty/
+│   ├── nvim/
+│   └── tmux/
+├── ansible/
+│   ├── inventory/
+│   ├── playbooks/
+│   ├── roles/
+│   └── values.yml
+└── docs/
 ```
 
-Each tool directory is a GNU Stow package whose contents mirror paths below
-the user's home directory.
+The repository deliberately avoids mirroring hidden home-directory structures:
 
-## Installation model
-
-Packages are linked independently from the repository root. Ghostty and
-Neovim are currently implemented:
-
-```bash
-stow --no --verbose --target="$HOME" ghostty nvim
-stow --target="$HOME" ghostty nvim
+```text
+configs/nvim/    → $XDG_CONFIG_HOME/nvim/
+configs/ghostty/ → $XDG_CONFIG_HOME/ghostty/
+configs/tmux/    → $XDG_CONFIG_HOME/tmux/
 ```
 
-Using an explicit target is required because this repository normally lives
-under `~/Projects`, not directly under the home directory.
+If `XDG_CONFIG_HOME` is unset, Ansible uses `~/.config`.
 
-Machine-specific settings belong in ignored local files, not in the shared
-packages.
+## Documentation
 
-## Project status
+- [Architecture](docs/architecture.md) — local and remote responsibility boundaries
+- [Ansible](docs/ansible.md) — inventories, tags, values and deployment behavior
+- [Ghostty](docs/ghostty/README.md) — complete terminal configuration reference
+- [Neovim](docs/nvim/README.md) — editor behavior, mappings and validation
+- [tmux](docs/tmux/README.md) — persistent server behavior and workflow
 
-The repository structure and architecture are defined. Implementation follows
-this order:
+## Principles
 
-- [x] Ghostty
-- [x] Neovim core, without plugins
-- [ ] Essential Neovim plugins
-- [ ] tmux for remote workflows
-- [ ] Installation and health-check scripts
-
-## Security
-
-Do not commit credentials, SSH keys, tokens, kubeconfig files, customer
-configuration, company hostnames or shell history. See [.gitignore](.gitignore)
-for the local-file conventions used by this repository.
+- Keep local terminal and remote workspace responsibilities separate.
+- Add options and plugins only for concrete needs.
+- Make platform-specific behavior explicit.
+- Keep secrets and machine-specific data outside version control.
+- Preserve a useful Neovim core even without plugins or network access.
 
 ## License
 

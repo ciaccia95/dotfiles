@@ -1,4 +1,12 @@
 ---
-tmux_source_directory: "{{ playbook_dir }}/../../tmux"
-tmux_destination_directory: "{{ ansible_env.HOME }}/.config/tmux"
+tmux_source_directory: "{{ dotfiles_source_root }}/tmux"
+tmux_destination_directory: "{{ dotfiles_xdg_config_home }}/tmux"
+tmux_executable: "{{ dotfiles_values.tmux.executable }}"
+tmux_obsolete_files:
+  - .config
+  - conf.d/10-general.conf
+  - conf.d/20-key.conf
+  - conf.d/30-panes.conf
+  - conf.d/40-status.conf
+  - conf.d/90-local.conf
 ...

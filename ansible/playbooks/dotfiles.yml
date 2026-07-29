@@ -1,0 +1,55 @@
+---
+- name: Configure dotfiles
+  hosts: all
+  gather_facts: true
+
+  vars_files:
+    - ../values.yml
+
+  vars:
+    dotfiles_values: >-
+      {{
+        dotfiles_defaults
+        | combine(dotfiles_overrides | default({}), recursive=true)
+      }}
+    dotfiles_source_root: "{{ dotfiles_values.deployment.source_root | realpath }}"
+    dotfiles_xdg_config_home: >-
+      {{
+        dotfiles_values.deployment.xdg_config_home
+        | default(
+            ansible_facts['env']['XDG_CONFIG_HOME']
+            | default(ansible_facts['env']['HOME'] ~ '/.config', true),
+            true
+          )
+      }}
+
+  pre_tasks:
+    - name: Verify the controller configuration root
+      ansible.builtin.stat:
+        path: "{{ dotfiles_source_root }}"
+      delegate_to: localhost
+      become: false
+      register: dotfiles_source
+      failed_when:
+        - not dotfiles_source.stat.exists
+          or not dotfiles_source.stat.isdir
+      tags:
+        - always
+
+  roles:
+    - role: linux_packages
+      tags:
+        - packages
+
+    - role: nvim
+      tags:
+        - nvim
+
+    - role: tmux
+      tags:
+        - tmux
+
+    - role: ghostty
+      tags:
+        - never
+        - ghostty

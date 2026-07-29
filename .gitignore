@@ -23,5 +23,6 @@ private/
 # Neovim local metadata
 .luarc.json
 
-# Machine-specific Ghostty overrides
-/ghostty/.config/ghostty/conf.d/90-local.conf
+# Machine-specific Ansible values
+/ansible/values.local.yml
+/ansible/inventory/remote.yml

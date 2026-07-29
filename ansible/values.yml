@@ -1,0 +1,42 @@
+---
+# Canonical defaults. Keep host-specific changes in values.local.yml.
+dotfiles_defaults:
+  deployment:
+    source_root: "{{ playbook_dir }}/../../configs"
+    xdg_config_home: null
+    directory_mode: "0755"
+    file_mode: "0644"
+
+  linux:
+    become: true
+    packages:
+      Debian:
+        nvim: neovim
+        tmux: tmux
+      RedHat:
+        nvim: neovim
+        tmux: tmux
+      Suse:
+        nvim: neovim
+        tmux: tmux
+
+  ghostty:
+    executable: /Applications/Ghostty.app/Contents/MacOS/ghostty
+    theme: Broadcast
+    font:
+      family: JetBrainsMono Nerd Font Mono
+      size: 15
+    window:
+      width: 120
+      height: 36
+      padding_x: 10
+      padding_y: 8
+    macos:
+      icon: xray
+
+  nvim:
+    executable: nvim
+
+  tmux:
+    executable: tmux
+...
