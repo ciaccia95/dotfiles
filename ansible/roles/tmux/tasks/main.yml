@@ -1,21 +1,35 @@
 ---
-- name: Ensure tmux is installed
+- name: Check whether tmux is installed
   ansible.builtin.command:
     argv:
       - "{{ tmux_executable }}"
       - -V
   register: tmux_version
+  check_mode: false
   changed_when: false
+  failed_when: false
 
-- name: Verify tmux source configuration
+- name: Require tmux
+  ansible.builtin.assert:
+    that:
+      - tmux_version.rc == 0
+    fail_msg: >-
+      tmux is not installed or is not executable as {{ tmux_executable }}.
+      Linux package installation is handled by the linux_packages role.
+      On macOS, install tmux explicitly before running this role.
+
+- name: Verify tmux source files
   ansible.builtin.stat:
-    path: "{{ tmux_source_directory }}/tmux.conf"
+    path: "{{ tmux_source_directory }}/{{ item }}"
   delegate_to: localhost
   become: false
-  register: tmux_source_config
+  register: tmux_source_file
   failed_when:
-    - not tmux_source_config.stat.exists
-      or not tmux_source_config.stat.isreg
+    - not tmux_source_file.stat.exists
+      or not tmux_source_file.stat.isreg
+  loop: "{{ tmux_configuration_files }}"
+  loop_control:
+    label: "{{ item }}"
 
 - name: Inspect existing tmux configuration
   ansible.builtin.stat:

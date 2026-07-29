@@ -10,4 +10,6 @@
       - start-server
       - ";"
       - kill-server
+  environment:
+    XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
   changed_when: false
