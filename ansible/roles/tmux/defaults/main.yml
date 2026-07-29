@@ -1,0 +1,4 @@
+---
+tmux_source_directory: "{{ playbook_dir }}/../../tmux"
+tmux_destination_directory: "{{ ansible_env.HOME }}/.config/tmux"
+...

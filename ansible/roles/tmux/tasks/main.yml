@@ -1,0 +1,21 @@
+---
+- name: Ensure tmux is installed
+  ansible.builtin.command:
+    argv:
+      - tmux
+      - -V
+  register: tmux_version
+  changed_when: false
+
+- name: Ensure tmux configuration directory exists
+  ansible.builtin.file:
+    path: "{{ tmux_destination_directory }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy tmux configuration
+  ansible.builtin.copy:
+    src: "{{ tmux_source_directory }}/"
+    dest: "{{ tmux_destination_directory }}/"
+    mode: preserve
+    directory_mode: "0755"
