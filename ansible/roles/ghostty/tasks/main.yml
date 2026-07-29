@@ -1,53 +1,52 @@
 ---
-- name: Verify operating system
-  ansible.builtin.assert:
-    that:
-      - ansible_facts.system == "Darwin"
-    fail_msg: "The Ghostty role currently supports macOS only."
-    success_msg: "macOS detected."
+- name: Ensure Ghostty is installed
+  ansible.builtin.command:
+    argv:
+      - "{{ ghostty_executable }}"
+      - --version
+  changed_when: false
 
-- name: Define Ghostty paths
-  ansible.builtin.set_fact:
-    ghostty_source: "{{ dotfiles_root }}/ghostty/.config/ghostty"
-    ghostty_destination: "{{ ansible_facts.env.HOME }}/.config/ghostty"
-
-- name: Verify Ghostty source configuration exists
+- name: Verify Ghostty source configuration
   ansible.builtin.stat:
-    path: "{{ ghostty_source }}/config"
+    path: "{{ ghostty_source_directory }}/config"
   register: ghostty_source_config
-
-- name: Fail when Ghostty source configuration is missing
-  ansible.builtin.assert:
-    that:
-      - ghostty_source_config.stat.exists
-      - ghostty_source_config.stat.isreg
-    fail_msg: "Missing Ghostty configuration: {{ ghostty_source }}/config"
-
-- name: Create user configuration directory
-  ansible.builtin.file:
-    path: "{{ ansible_facts.env.HOME }}/.config"
-    state: directory
-    mode: "0755"
+  failed_when:
+    - not ghostty_source_config.stat.exists
+      or not ghostty_source_config.stat.isreg
 
 - name: Inspect existing Ghostty configuration
   ansible.builtin.stat:
-    path: "{{ ghostty_destination }}"
+    path: "{{ ghostty_destination_directory }}"
     follow: false
-  register: ghostty_destination_state
+  register: ghostty_destination
 
-- name: Refuse to overwrite an unmanaged Ghostty configuration
+- name: Refuse to replace an unmanaged Ghostty symlink
   ansible.builtin.assert:
     that:
       - >
-        not ghostty_destination_state.stat.exists
-        or ghostty_destination_state.stat.islnk
+        not ghostty_destination.stat.islnk | default(false)
+        or (ghostty_destination.stat.lnk_source | realpath)
+        == (ghostty_source_directory | realpath)
     fail_msg: >-
-      {{ ghostty_destination }} already exists and is not a symbolic link.
-      Back it up or remove it before running the playbook.
+      {{ ghostty_destination_directory }} is a symlink to an unmanaged target.
+      Review it before running the playbook again.
 
-- name: Link Ghostty configuration
+- name: Remove managed Ghostty configuration symlink
   ansible.builtin.file:
-    src: "{{ ghostty_source }}"
-    dest: "{{ ghostty_destination }}"
-    state: link
-    force: true
+    path: "{{ ghostty_destination_directory }}"
+    state: absent
+  when: ghostty_destination.stat.islnk | default(false)
+
+- name: Ensure Ghostty configuration directory exists
+  ansible.builtin.file:
+    path: "{{ ghostty_destination_directory }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Ghostty configuration
+  ansible.builtin.copy:
+    src: "{{ ghostty_source_directory }}/"
+    dest: "{{ ghostty_destination_directory }}/"
+    mode: preserve
+    directory_mode: "0755"
+  notify: Validate Ghostty configuration

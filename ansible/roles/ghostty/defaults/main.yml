@@ -1,0 +1,5 @@
+---
+ghostty_source_directory: "{{ (playbook_dir ~ '/../../ghostty/.config/ghostty') | realpath }}"
+ghostty_destination_directory: "{{ ansible_facts['env']['HOME'] }}/.config/ghostty"
+ghostty_executable: /Applications/Ghostty.app/Contents/MacOS/ghostty
+...

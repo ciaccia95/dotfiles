@@ -1,0 +1,12 @@
+---
+- name: Validate Neovim configuration
+  ansible.builtin.command:
+    argv:
+      - nvim
+      - --headless
+      - -i
+      - NONE
+      - -n
+      - "+lua assert(vim.v.errmsg == '', vim.v.errmsg)"
+      - "+qa"
+  changed_when: false

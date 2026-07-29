@@ -1,0 +1,10 @@
+---
+- name: Validate Ghostty configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ ghostty_executable }}"
+      - +show-config
+      - --changes-only
+  environment:
+    XDG_CONFIG_HOME: "{{ ansible_facts['env']['HOME'] }}/.config"
+  changed_when: false

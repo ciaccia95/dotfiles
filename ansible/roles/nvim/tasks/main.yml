@@ -1,0 +1,59 @@
+---
+- name: Ensure Neovim is installed
+  ansible.builtin.command:
+    argv:
+      - nvim
+      - --version
+  register: nvim_version
+  changed_when: false
+  failed_when: nvim_version.rc != 0
+
+- name: Verify Neovim source configuration
+  ansible.builtin.stat:
+    path: "{{ nvim_source_directory }}/init.lua"
+  register: nvim_source_config
+  failed_when:
+    - not nvim_source_config.stat.exists
+      or not nvim_source_config.stat.isreg
+
+- name: Inspect existing Neovim configuration
+  ansible.builtin.stat:
+    path: "{{ nvim_destination_directory }}"
+    follow: false
+  register: nvim_destination
+
+- name: Refuse to replace an unmanaged Neovim symlink
+  ansible.builtin.assert:
+    that:
+      - >
+        not nvim_destination.stat.islnk | default(false)
+        or (nvim_destination.stat.lnk_source | realpath)
+        == (nvim_source_directory | realpath)
+    fail_msg: >-
+      {{ nvim_destination_directory }} is a symlink to an unmanaged target.
+      Review it before running the playbook again.
+
+- name: Remove managed Neovim configuration symlink
+  ansible.builtin.file:
+    path: "{{ nvim_destination_directory }}"
+    state: absent
+  when: nvim_destination.stat.islnk | default(false)
+
+- name: Remove legacy nested Neovim configuration
+  ansible.builtin.file:
+    path: "{{ nvim_destination_directory }}/.config"
+    state: absent
+
+- name: Ensure Neovim configuration directory exists
+  ansible.builtin.file:
+    path: "{{ nvim_destination_directory }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Neovim configuration
+  ansible.builtin.copy:
+    src: "{{ nvim_source_directory }}/"
+    dest: "{{ nvim_destination_directory }}/"
+    mode: preserve
+    directory_mode: "0755"
+  notify: Validate Neovim configuration

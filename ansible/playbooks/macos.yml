@@ -1,10 +1,14 @@
 ---
 - name: Configure macOS workstation
   hosts: localhost
+  connection: local
   gather_facts: true
 
-  vars:
-    dotfiles_root: "{{ playbook_dir }}/../.."
-
   roles:
-    - ghostty
+    - role: ghostty
+      tags:
+        - ghostty
+
+    - role: nvim
+      tags:
+        - nvim
