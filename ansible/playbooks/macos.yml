@@ -1,0 +1,10 @@
+---
+- name: Configure macOS workstation
+  hosts: localhost
+  gather_facts: true
+
+  vars:
+    dotfiles_root: "{{ playbook_dir }}/../.."
+
+  roles:
+    - ghostty

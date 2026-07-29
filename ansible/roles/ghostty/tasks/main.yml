@@ -1,0 +1,53 @@
+---
+- name: Verify operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.system == "Darwin"
+    fail_msg: "The Ghostty role currently supports macOS only."
+    success_msg: "macOS detected."
+
+- name: Define Ghostty paths
+  ansible.builtin.set_fact:
+    ghostty_source: "{{ dotfiles_root }}/ghostty/.config/ghostty"
+    ghostty_destination: "{{ ansible_facts.env.HOME }}/.config/ghostty"
+
+- name: Verify Ghostty source configuration exists
+  ansible.builtin.stat:
+    path: "{{ ghostty_source }}/config"
+  register: ghostty_source_config
+
+- name: Fail when Ghostty source configuration is missing
+  ansible.builtin.assert:
+    that:
+      - ghostty_source_config.stat.exists
+      - ghostty_source_config.stat.isreg
+    fail_msg: "Missing Ghostty configuration: {{ ghostty_source }}/config"
+
+- name: Create user configuration directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config"
+    state: directory
+    mode: "0755"
+
+- name: Inspect existing Ghostty configuration
+  ansible.builtin.stat:
+    path: "{{ ghostty_destination }}"
+    follow: false
+  register: ghostty_destination_state
+
+- name: Refuse to overwrite an unmanaged Ghostty configuration
+  ansible.builtin.assert:
+    that:
+      - >
+        not ghostty_destination_state.stat.exists
+        or ghostty_destination_state.stat.islnk
+    fail_msg: >-
+      {{ ghostty_destination }} already exists and is not a symbolic link.
+      Back it up or remove it before running the playbook.
+
+- name: Link Ghostty configuration
+  ansible.builtin.file:
+    src: "{{ ghostty_source }}"
+    dest: "{{ ghostty_destination }}"
+    state: link
+    force: true
