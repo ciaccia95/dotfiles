@@ -28,9 +28,9 @@ Ghostty owns the local terminal experience. tmux owns persistent remote
 workspaces and remains optional on macOS. Neovim configuration is shared
 between macOS and Linux wherever possible.
 
-See [Architecture](docs/architecture.md) for responsibilities, boundaries and
-deployment decisions, and the [Ghostty guide](docs/ghostty/README.md) for the
-complete terminal configuration reference.
+See [Architecture](docs/architecture.md) for responsibilities and boundaries.
+Component guides document the complete [Ghostty](docs/ghostty/README.md) and
+[Neovim](docs/nvim/README.md) configurations.
 
 ## Principles
 
@@ -57,12 +57,12 @@ the user's home directory.
 
 ## Installation model
 
-Packages are linked independently from the repository root. Ghostty is the
-first implemented package:
+Packages are linked independently from the repository root. Ghostty and
+Neovim are currently implemented:
 
 ```bash
-stow --no --verbose --target="$HOME" ghostty
-stow --target="$HOME" ghostty
+stow --no --verbose --target="$HOME" ghostty nvim
+stow --target="$HOME" ghostty nvim
 ```
 
 Using an explicit target is required because this repository normally lives
@@ -77,7 +77,7 @@ The repository structure and architecture are defined. Implementation follows
 this order:
 
 - [x] Ghostty
-- [ ] Neovim core, without plugins
+- [x] Neovim core, without plugins
 - [ ] Essential Neovim plugins
 - [ ] tmux for remote workflows
 - [ ] Installation and health-check scripts

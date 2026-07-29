@@ -140,5 +140,6 @@ templates and training material remain outside this repository.
 ## Current status
 
 The directory layout and architectural responsibilities are established.
-Ghostty is implemented and documented. Neovim and tmux configuration files
-remain scaffolds and will be implemented incrementally.
+Ghostty and the plugin-free Neovim core are implemented and documented. The
+Neovim plugin layer and tmux configuration remain scaffolds and will be
+implemented incrementally.
