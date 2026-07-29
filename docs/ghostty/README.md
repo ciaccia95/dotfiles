@@ -16,7 +16,7 @@ The configuration has been validated with:
 - Ghostty 1.3.1, stable channel;
 - macOS with the Core Text font engine and Metal renderer;
 - `JetBrainsMono Nerd Font Mono`;
-- the built-in `Everforest Dark Hard` theme.
+- the built-in `Nightfox` theme.
 
 Ghostty's `config` filename is retained because it is supported by the current
 version and keeps the existing Stow path stable. Recent Ghostty versions also
@@ -111,19 +111,33 @@ Source: `conf.d/20-theme.conf`.
 
 | Option | Value | Decision |
 | --- | --- | --- |
-| `theme` | `Everforest Dark Hard` | Uses the darkest built-in Everforest variant and its ANSI palette |
-| `minimum-contrast` | `4.5` | Enforces the WCAG contrast ratio used as the AA target for normal text |
-| `cursor-color` | `#d3c6aa` | Uses a bright neutral cursor that does not depend on red or green |
-| `cursor-text` | `#1e2326` | Keeps the glyph beneath the cursor readable |
-| `selection-foreground` | `#ffffff` | Gives selected text an explicit neutral foreground |
-| `selection-background` | `#4f5b58` | Makes selection visible independently of syntax colors |
+| `theme` | `Nightfox` | Uses the complete built-in theme without color overrides |
 
-The theme supplies the normal background, foreground and palette. Explicit
-cursor and selection colors override only those parts of the theme.
+No `background`, `foreground`, `palette`, `cursor-*`, `selection-*` or
+`minimum-contrast` option is set by this repository. Nightfox owns the entire
+color system, so its internal relationships are not altered after loading.
 
-`minimum-contrast` may adjust low-contrast terminal colors toward black or
-white. It does not modify emoji or images. Color must never be the only
-carrier of state in Neovim, tmux, lazygit or other terminal applications.
+The resolved Nightfox colors relevant to the current terminal workflow are:
+
+| Role | Color | Contrast against its background |
+| --- | --- | --- |
+| Terminal background | `#192330` | Not applicable |
+| Default foreground and regular files | `#cdcecf` | 10.06:1 |
+| ANSI cyan and directories | `#63cdcf` | 8.43:1 |
+| ANSI magenta and symbolic links | `#9d79d6` | 4.64:1 |
+| Selection | `#cdcecf` on `#2b3b51` | 7.21:1 |
+| Cursor | `#cdcecf` on `#192330` | 10.06:1 |
+
+Ghostty does not decide whether a path is a file, directory or symbolic link.
+The listing program assigns an ANSI color and Ghostty renders that ANSI index
+through the theme. In the current shell, `LS_COLORS` maps directories to bold
+cyan (`di=1;36`) and symbolic links to magenta (`ln=35`); regular files use the
+default foreground. This is why the three Nightfox colors above determine
+their visual separation.
+
+Color is not the only way to verify a file type. With `ls -l`, a directory
+starts with `d`, a symbolic link starts with `l` and includes `->`, and a
+regular file starts with `-`.
 
 ### Window
 
