@@ -22,3 +22,6 @@ private/
 
 # Neovim local metadata
 .luarc.json
+
+# Machine-specific Ghostty overrides
+/ghostty/.config/ghostty/conf.d/90-local.conf
