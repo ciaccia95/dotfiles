@@ -1,0 +1,10 @@
+---
+- name: Validate Lazygit configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ lazygit_executable }}"
+      - "--use-config-file={{ lazygit_destination_directory }}/config.yml"
+      - --print-config-dir
+  environment:
+    XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
+  changed_when: false

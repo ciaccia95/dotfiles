@@ -4,6 +4,7 @@ dotfiles_defaults:
   deployment:
     source_root: "{{ playbook_dir }}/../../configs"
     xdg_config_home: null
+    xdg_state_home: null
     directory_mode: "0755"
     file_mode: "0644"
 
@@ -12,12 +13,15 @@ dotfiles_defaults:
     packages:
       Debian:
         nvim: neovim
+        vim: vim
         tmux: tmux
       RedHat:
         nvim: neovim
+        vim: vim-enhanced
         tmux: tmux
       Suse:
         nvim: neovim
+        vim: vim
         tmux: tmux
 
   ghostty:
@@ -37,6 +41,12 @@ dotfiles_defaults:
   nvim:
     executable: nvim
 
+  vim:
+    executable: vim
+
   tmux:
     executable: tmux
+
+  lazygit:
+    executable: lazygit
 ...

@@ -1,0 +1,15 @@
+# Keep Lazygit keyboard-first and let Neovim handle file editing.
+gui:
+  mouseEvents: false
+  scrollOffMargin: 4
+  showRandomTip: false
+  nerdFontsVersion: "3"
+
+os:
+  editPreset: nvim
+
+disableStartupPopups: true
+
+# Installation is owned by the system package manager, not by Lazygit.
+update:
+  method: never

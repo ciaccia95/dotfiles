@@ -17,14 +17,14 @@ separate repositories.
 ```text
 macOS
 └── Ghostty
-    ├── Neovim
+    ├── Neovim or Vim
     ├── lazygit
     ├── shell
     └── SSH
         └── Linux server
             └── tmux
                 ├── persistent workspaces
-                ├── Neovim
+                ├── Neovim or Vim
                 ├── logs and monitoring
                 ├── Kubernetes and containers
                 └── operational sessions
@@ -42,6 +42,12 @@ splits, and launches local tools such as Neovim, lazygit and the shell.
 Neovim is the local editor. Its core configuration is shared with Linux so
 that editing behavior remains familiar across environments.
 
+Vim is the portable fallback. It follows the same leader, indentation, search,
+window, clipboard and recovery policy as Neovim without external plugins.
+
+Lazygit is an optional local Git interface. It opens files in Neovim and keeps
+its own UI responsibilities separate from editor and terminal configuration.
+
 tmux is optional locally. The default macOS workflow does not depend on it,
 because using both Ghostty and tmux for the same local layout would duplicate
 navigation and pane-management responsibilities.
@@ -58,9 +64,10 @@ tmux provides:
 - keyboard-driven navigation and copy mode;
 - a stable place for editors, logs, monitoring and long-running commands.
 
-Neovim runs inside tmux when editing on the remote host. Operational tools run
-in adjacent tmux windows or panes, so reconnecting restores the working
-context.
+Neovim normally runs inside tmux when editing on the remote host; Vim provides
+the same core muscle memory when Neovim is unavailable or unnecessary.
+Operational tools run in adjacent tmux windows or panes, so reconnecting
+restores the working context.
 
 ## Responsibility boundaries
 
@@ -70,7 +77,8 @@ context.
 | Windows, tabs and local splits | Ghostty | Not applicable |
 | Persistent sessions | Optional tmux | tmux |
 | Remote windows and panes | Not applicable | tmux |
-| Text editing | Neovim | Neovim inside tmux |
+| Text editing | Neovim, with Vim fallback | Neovim or Vim inside tmux |
+| Git terminal UI | Optional Lazygit | Optional, installed separately |
 | Connection transport | SSH launched from Ghostty | SSH server |
 
 Bindings should follow these boundaries. Ghostty bindings control local UI;
@@ -91,8 +99,9 @@ Shared defaults must:
 - avoid assumptions about customer or company infrastructure;
 - keep secrets and host-specific values outside version control.
 
-The shell and other cross-platform tools may adopt the same rule when their
-packages are introduced.
+Vim follows the same sharing rule with a deliberately smaller feature surface.
+The shell and other cross-platform tools may adopt it when their packages are
+introduced.
 
 ## Deployment model
 
@@ -102,6 +111,8 @@ Configuration sources use visible, application-oriented paths:
 configs/nvim/init.lua
 configs/ghostty/config.ghostty.j2
 configs/tmux/tmux.conf
+configs/vim/vimrc
+configs/lazygit/config.yml
 ```
 
 Ansible maps these sources into the target user's XDG configuration root:
@@ -110,6 +121,8 @@ Ansible maps these sources into the target user's XDG configuration root:
 configs/nvim/    → $XDG_CONFIG_HOME/nvim/
 configs/ghostty/ → $XDG_CONFIG_HOME/ghostty/
 configs/tmux/    → $XDG_CONFIG_HOME/tmux/
+configs/vim/     → $XDG_CONFIG_HOME/vim/
+configs/lazygit/ → $XDG_CONFIG_HOME/lazygit/
 ```
 
 When `XDG_CONFIG_HOME` is unset, the destination is `~/.config`. The source
@@ -118,13 +131,19 @@ itself or a remote inventory host.
 
 The default local inventory uses `ansible_connection: local`. Remote
 inventories select SSH targets without changing the playbook. All roles can be
-selected by tags. Neovim and tmux run by default; Ghostty carries the special
-`never` tag and runs only when `--tags ghostty` is requested.
+selected by tags. Neovim, Vim and tmux run by default; Ghostty and Lazygit carry
+the special `never` tag and run only when explicitly requested.
 
-On Linux, a bootstrap role installs Neovim and tmux before deploying their
+On Linux, a bootstrap role installs Neovim, Vim and tmux before deploying their
 configuration. It supports the Debian, Red Hat and SUSE operating-system
 families through Ansible's package abstraction and uses privilege escalation
 only for package tasks. Non-Linux targets never execute package installation.
+Lazygit remains explicitly installed because its package availability differs
+substantially across releases and repository configurations.
+
+Vim keeps configuration in `$XDG_CONFIG_HOME/vim` and mutable recovery data in
+`$XDG_STATE_HOME/vim`. Legacy `~/.vimrc` paths are rejected because Vim would
+load them before its XDG configuration.
 
 Settings that reasonably vary between machines live in
 `ansible/values.yml`. An ignored override file is recursively merged over
@@ -147,12 +166,12 @@ Configuration is added in layers: terminal, editor core, essential plugins,
 then remote session management. New options require a clear purpose; new
 plugins require a concrete use case.
 
-General-purpose scripts, Git configuration, shell configuration and lazygit
-may become separate managed components. Project-specific automation,
-infrastructure templates and training material remain outside this repository.
+General-purpose scripts, Git configuration and shell configuration may become
+separate managed components. Project-specific automation, infrastructure
+templates and training material remain outside this repository.
 
 ## Current status
 
-Ghostty, the plugin-free Neovim core, the tmux server foundation and their
-Ansible deployment are implemented. The Neovim plugin layer and the remaining
-tmux interaction modules will be introduced only for concrete workflows.
+Ghostty, the external-plugin-free Neovim and Vim cores, the complete tmux
+workflow and the optional Lazygit component are implemented. Further plugins
+are introduced only for concrete workflows.

@@ -1,0 +1,10 @@
+---
+vim_source_directory: "{{ dotfiles_source_root }}/vim"
+vim_destination_directory: "{{ dotfiles_xdg_config_home }}/vim"
+vim_state_directory: "{{ dotfiles_xdg_state_home }}/vim"
+vim_executable: "{{ dotfiles_values.vim.executable }}"
+vim_minimum_version: "9.1"
+vim_legacy_configuration_files:
+  - "{{ ansible_facts['env']['HOME'] }}/.vimrc"
+  - "{{ ansible_facts['env']['HOME'] }}/.vim/vimrc"
+...

@@ -1,0 +1,216 @@
+" Vim fallback aligned with the plugin-free Neovim core.
+" Vim 9.1+ discovers this file natively at $XDG_CONFIG_HOME/vim/vimrc.
+
+set nocompatible
+
+let mapleader = " "
+let maplocalleader = " "
+
+filetype plugin indent on
+syntax enable
+
+" -----------------------------------------------------------------------------
+" Interface
+" -----------------------------------------------------------------------------
+
+" Keep the terminal responsible for the palette.
+set background=dark
+set notermguicolors
+
+set number
+set relativenumber
+set numberwidth=4
+if exists("+signcolumn")
+  set signcolumn=yes
+endif
+set cursorline
+
+set scrolloff=8
+set sidescrolloff=8
+if exists("+smoothscroll")
+  set smoothscroll
+endif
+
+" Vim has per-window status lines; keep them visible without styling a theme.
+set laststatus=2
+set shortmess+=I
+if exists("+fillchars")
+  let &fillchars = &fillchars . ",eob: "
+endif
+
+" -----------------------------------------------------------------------------
+" Editing, indentation and wrapping
+" -----------------------------------------------------------------------------
+
+set expandtab
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set autoindent
+set smartindent
+
+set nowrap
+set linebreak
+set breakindent
+set backspace=indent,eol,start
+set virtualedit=block
+
+" -----------------------------------------------------------------------------
+" Search and completion
+" -----------------------------------------------------------------------------
+
+set ignorecase
+set smartcase
+set incsearch
+set hlsearch
+
+set wildmenu
+set wildmode=longest:full,full
+set completeopt=menu,menuone,noselect
+set pumheight=12
+
+" -----------------------------------------------------------------------------
+" Files, recovery and XDG state
+" -----------------------------------------------------------------------------
+
+let s:state_home = empty($XDG_STATE_HOME)
+      \ ? expand("~/.local/state")
+      \ : expand($XDG_STATE_HOME)
+let s:vim_state = s:state_home . "/vim"
+let s:undo_directory = s:vim_state . "/undo"
+let s:swap_directory = s:vim_state . "/swap"
+
+for s:directory in [s:vim_state, s:undo_directory, s:swap_directory]
+  if !isdirectory(s:directory)
+    call mkdir(s:directory, "p", 0700)
+  endif
+endfor
+
+set undofile
+execute "set undodir=" . fnameescape(s:undo_directory . "//")
+execute "set directory=" . fnameescape(s:swap_directory . "//")
+
+if exists("+viminfofile")
+  execute "set viminfofile=" . fnameescape(s:vim_state . "/viminfo")
+endif
+
+set nobackup
+set writebackup
+set autoread
+set confirm
+set hidden
+
+" -----------------------------------------------------------------------------
+" Windows, clipboard and responsiveness
+" -----------------------------------------------------------------------------
+
+set splitright
+set splitbelow
+if exists("+splitkeep")
+  set splitkeep=screen
+endif
+
+set mouse=a
+
+" Ordinary registers stay internal. System clipboard access is explicit below.
+set clipboard=
+
+set nolist
+set listchars=tab:»\ ,trail:·,extends:›,precedes:‹,nbsp:␣
+
+set updatetime=250
+set timeoutlen=400
+
+if executable("rg")
+  let &grepprg = "rg --vimgrep --smart-case"
+  let &grepformat = "%f:%l:%c:%m"
+endif
+
+" -----------------------------------------------------------------------------
+" Key mappings
+" -----------------------------------------------------------------------------
+
+nnoremap <silent> n nzzzv
+nnoremap <silent> N Nzzzv
+nnoremap <silent> <C-d> <C-d>zz
+nnoremap <silent> <C-u> <C-u>zz
+
+nnoremap <silent> <C-h> <C-w>h
+nnoremap <silent> <C-j> <C-w>j
+nnoremap <silent> <C-k> <C-w>k
+nnoremap <silent> <C-l> <C-w>l
+
+nnoremap <silent> <C-Up> :resize +2<CR>
+nnoremap <silent> <C-Down> :resize -2<CR>
+nnoremap <silent> <C-Left> :vertical resize -2<CR>
+nnoremap <silent> <C-Right> :vertical resize +2<CR>
+
+nnoremap <silent> <Leader>y "+y
+xnoremap <silent> <Leader>y "+y
+nnoremap <silent> <Leader>Y "+Y
+nnoremap <silent> <Leader>p "+p
+xnoremap <silent> <Leader>p "+p
+nnoremap <silent> <Leader>P "+P
+xnoremap <silent> <Leader>P "+P
+
+nnoremap <silent> [b :bprevious<CR>
+nnoremap <silent> ]b :bnext<CR>
+nnoremap <silent> <Leader>bd :confirm bdelete<CR>
+
+nnoremap <silent> [q :silent! cprevious<CR>
+nnoremap <silent> ]q :silent! cnext<CR>
+nnoremap <silent> <Leader>co :copen<CR>
+nnoremap <silent> <Leader>cc :cclose<CR>
+
+nnoremap <silent> <Leader>w :write<CR>
+nnoremap <silent> <Leader>q :confirm quit<CR>
+nnoremap <silent> <Leader>x :xit<CR>
+
+xnoremap <silent> < <gv
+xnoremap <silent> > >gv
+
+nnoremap <silent> <Leader>ul :setlocal list!<CR>
+nnoremap <silent> <Leader>uw :setlocal wrap!<CR>
+nnoremap <silent> <Esc> :nohlsearch<CR>
+
+if has("terminal")
+  tnoremap <silent> <Esc><Esc> <C-w>N
+endif
+
+" -----------------------------------------------------------------------------
+" Autocommands
+" -----------------------------------------------------------------------------
+
+function! s:CheckExternalChanges() abort
+  if getcmdwintype() ==# ""
+    checktime
+  endif
+endfunction
+
+function! s:RestoreCursor() abort
+  if index(["gitcommit", "gitrebase"], &filetype) >= 0
+    return
+  endif
+
+  let l:last_line = line("'\"")
+  if l:last_line > 0 && l:last_line <= line("$")
+    execute "normal! g`\""
+  endif
+endfunction
+
+augroup antonello
+  autocmd!
+  autocmd FocusGained,BufEnter * call <SID>CheckExternalChanges()
+  autocmd VimResized * wincmd =
+  autocmd BufReadPost * call <SID>RestoreCursor()
+  autocmd FileType help,man,qf nnoremap <buffer> <silent> q :close<CR>
+  if exists("##TerminalOpen")
+    autocmd TerminalOpen * setlocal nonumber norelativenumber signcolumn=no
+  endif
+augroup END
+
+" Vim ships highlight-yank as an optional runtime package on recent releases.
+let g:hlyank_duration = 150
+if !empty(globpath(&packpath, "pack/dist/opt/hlyank/plugin/hlyank.vim"))
+  packadd hlyank
+endif

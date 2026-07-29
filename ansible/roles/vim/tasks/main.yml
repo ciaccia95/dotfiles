@@ -1,0 +1,110 @@
+---
+- name: Check whether Vim is installed
+  ansible.builtin.command:
+    argv:
+      - "{{ vim_executable }}"
+      - --version
+  register: vim_version
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: Require Vim
+  ansible.builtin.assert:
+    that:
+      - vim_version.rc == 0
+    fail_msg: >-
+      Vim is not installed or is not executable as {{ vim_executable }}.
+      Linux package installation is handled by the linux_packages role.
+      On macOS, use the system Vim or install Vim explicitly.
+
+- name: Record the Vim version
+  ansible.builtin.set_fact:
+    vim_detected_version: >-
+      {{
+        (
+          vim_version.stdout
+          | regex_findall('VIM - Vi IMproved ([0-9]+[.][0-9]+)')
+          | first
+        )
+        | default('0.0')
+      }}
+  changed_when: false
+
+- name: Require native Vim XDG support
+  ansible.builtin.assert:
+    that:
+      - vim_detected_version is version(vim_minimum_version, '>=')
+    fail_msg: >-
+      Vim {{ vim_detected_version }} is too old for native XDG vimrc discovery.
+      Install Vim {{ vim_minimum_version }} or newer before deploying this role.
+
+- name: Verify Vim source configuration
+  ansible.builtin.stat:
+    path: "{{ vim_source_directory }}/vimrc"
+  delegate_to: localhost
+  become: false
+  register: vim_source_config
+  failed_when:
+    - not vim_source_config.stat.exists
+      or not vim_source_config.stat.isreg
+
+- name: Inspect legacy Vim configuration
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  register: vim_legacy_config
+  loop: "{{ vim_legacy_configuration_files }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Require Vim configuration to live only in XDG
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists
+      - not item.stat.islnk | default(false)
+    fail_msg: >-
+      Legacy Vim configuration exists at {{ item.item }} and takes precedence
+      over {{ vim_destination_directory }}/vimrc. Move it explicitly before
+      allowing Ansible to manage the XDG-only configuration.
+  loop: "{{ vim_legacy_config.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Inspect existing Vim XDG configuration
+  ansible.builtin.stat:
+    path: "{{ vim_destination_directory }}"
+    follow: false
+  register: vim_destination
+
+- name: Refuse to replace an unmanaged Vim symlink
+  ansible.builtin.assert:
+    that:
+      - not vim_destination.stat.islnk | default(false)
+    fail_msg: >-
+      {{ vim_destination_directory }} is a symbolic link.
+      Replace it explicitly before allowing Ansible to manage this directory.
+
+- name: Ensure Vim XDG directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ vim_destination_directory }}"
+      mode: "{{ dotfiles_values.deployment.directory_mode }}"
+    - path: "{{ vim_state_directory }}"
+      mode: "0700"
+    - path: "{{ vim_state_directory }}/undo"
+      mode: "0700"
+    - path: "{{ vim_state_directory }}/swap"
+      mode: "0700"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Deploy Vim configuration
+  ansible.builtin.copy:
+    src: "{{ vim_source_directory }}/vimrc"
+    dest: "{{ vim_destination_directory }}/vimrc"
+    mode: "{{ dotfiles_values.deployment.file_mode }}"
+  notify: Validate Vim configuration

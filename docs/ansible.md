@@ -16,9 +16,11 @@ ansible/
 │   └── dotfiles.yml
 ├── roles/
 │   ├── ghostty/
+│   ├── lazygit/
 │   ├── linux_packages/
 │   ├── nvim/
-│   └── tmux/
+│   ├── tmux/
+│   └── vim/
 ├── values.yml
 └── values.example.yml
 ```
@@ -68,11 +70,11 @@ Linux package installation.
 Before configuration, the `linux_packages` role installs the selected tools on
 supported Linux families:
 
-| Ansible OS family | Native package backend | Neovim package | tmux package |
+| Ansible OS family | Neovim | Vim | tmux |
 | --- | --- | --- | --- |
-| `Debian` | APT | `neovim` | `tmux` |
-| `RedHat` | DNF/YUM | `neovim` | `tmux` |
-| `Suse` | Zypper | `neovim` | `tmux` |
+| `Debian` | `neovim` | `vim` | `tmux` |
+| `RedHat` | `neovim` | `vim-enhanced` | `tmux` |
+| `Suse` | `neovim` | `vim` | `tmux` |
 
 Installation uses `ansible.builtin.package`, which selects the backend from
 gathered facts. Packages must be available in repositories enabled on the
@@ -84,18 +86,26 @@ Package tasks use `become: true` by default. Use passwordless sudo or pass
 privilege escalation is managed differently.
 
 On non-Linux systems package tasks are skipped. Existing application checks
-still ensure Neovim and tmux are available before configuration is deployed.
+still ensure Neovim, Vim and tmux are available before configuration is
+deployed.
+
+Lazygit is not part of this package table. Current Debian, Red Hat and SUSE
+releases require different native or third-party repository strategies, so the
+repository does not silently enable external package sources or download
+unverified binaries.
 
 ## Components and tags
 
 | Component | Default run | Explicit selection |
 | --- | --- | --- |
 | Neovim package and config | Yes | `--tags nvim` |
+| Vim package and config | Yes | `--tags vim` |
 | tmux package and config | Yes | `--tags tmux` |
+| Lazygit config | No (`never`) | `--tags lazygit` |
 | Ghostty | No (`never`) | `--tags ghostty` |
 
-Ghostty also checks that the target is macOS. It can never be deployed by an
-untagged run, including when the default local inventory is used.
+Ghostty also checks that the target is macOS. Ghostty and Lazygit can never be
+deployed by an untagged run, including with the default local inventory.
 
 Examples:
 
@@ -103,12 +113,18 @@ Examples:
 # Neovim only, locally.
 ansible-playbook playbooks/dotfiles.yml --tags nvim
 
-# Neovim and tmux on one remote host.
+# Vim only, locally or remotely.
+ansible-playbook playbooks/dotfiles.yml --tags vim
+
+# Neovim, Vim and tmux on one remote host.
 ansible-playbook \
   -i inventory/remote.yml \
   playbooks/dotfiles.yml \
-  --tags nvim,tmux \
+  --tags nvim,vim,tmux \
   --limit workstation
+
+# Lazygit after installing its executable explicitly.
+ansible-playbook playbooks/dotfiles.yml --tags lazygit
 
 # Ghostty explicitly on a macOS target.
 ansible-playbook playbooks/dotfiles.yml --tags ghostty
@@ -119,7 +135,7 @@ ansible-playbook playbooks/dotfiles.yml --tags ghostty
 Parameters that commonly vary are centralized in `values.yml`:
 
 - controller source root;
-- optional explicit XDG destination;
+- optional explicit XDG configuration and state destinations;
 - directory and file modes;
 - Linux privilege escalation and per-family package names;
 - executable paths;
@@ -139,9 +155,9 @@ ansible-playbook \
 override file needs to contain only changed leaves. The file is ignored by Git.
 It is configuration, not a secret store.
 
-## XDG destination
+## XDG destinations
 
-The destination is resolved independently for every managed host:
+Configuration destination is resolved independently for every managed host:
 
 1. `deployment.xdg_config_home` from the merged values, when set;
 2. the target's `XDG_CONFIG_HOME`, when exported;
@@ -149,6 +165,10 @@ The destination is resolved independently for every managed host:
 
 This keeps repository paths readable while respecting each target's XDG
 environment.
+
+Vim state uses the equivalent sequence for `deployment.xdg_state_home`,
+`XDG_STATE_HOME` and `~/.local/state`. When overriding the state destination,
+export the same `XDG_STATE_HOME` for interactive Vim sessions.
 
 ## Safety and validation
 
@@ -158,7 +178,11 @@ before deployment, and changed configurations trigger native validation:
 
 - `ghostty +show-config --changes-only`;
 - headless Neovim startup;
+- Vim syntax and native XDG discovery;
 - an isolated tmux server lifecycle.
+
+The opt-in Lazygit role parses its YAML and asks Lazygit to resolve the
+deployed configuration directory.
 
 Use `--check --diff` before changing a new host. A second normal run should
 finish with `changed=0`.

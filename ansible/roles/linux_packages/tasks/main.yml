@@ -9,6 +9,7 @@
   when: ansible_facts['system'] == "Linux"
   tags:
     - nvim
+    - vim
     - tmux
 
 - name: Install Neovim on Linux
@@ -19,6 +20,15 @@
   when: ansible_facts['system'] == "Linux"
   tags:
     - nvim
+
+- name: Install Vim on Linux
+  ansible.builtin.package:
+    name: "{{ dotfiles_values.linux.packages[ansible_facts['os_family']].vim }}"
+    state: present
+  become: "{{ dotfiles_values.linux.become }}"
+  when: ansible_facts['system'] == "Linux"
+  tags:
+    - vim
 
 - name: Install tmux on Linux
   ansible.builtin.package:

@@ -1,0 +1,47 @@
+---
+- name: Validate Vim configuration syntax
+  ansible.builtin.command:
+    argv:
+      - "{{ vim_executable }}"
+      - -Nu
+      - "{{ vim_destination_directory }}/vimrc"
+      - -n
+      - -es
+      - -i
+      - NONE
+      - -c
+      - "if !empty(v:errmsg) | cquit 1 | endif"
+      - -c
+      - qa!
+    expand_argument_vars: false
+  environment:
+    XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
+    XDG_STATE_HOME: "{{ dotfiles_xdg_state_home }}"
+  changed_when: false
+  listen: Validate Vim configuration
+
+- name: Verify Vim native XDG discovery
+  ansible.builtin.command:
+    argv:
+      - "{{ vim_executable }}"
+      - --not-a-term
+      - -T
+      - dumb
+      - -n
+      - -i
+      - NONE
+      - -c
+      - >-
+        if resolve(expand('$MYVIMRC')) !=#
+        resolve($DOTFILES_EXPECTED_VIMRC) | cquit 2 | endif
+      - -c
+      - "if !empty(v:errmsg) | cquit 1 | endif"
+      - -c
+      - qa!
+    expand_argument_vars: false
+  environment:
+    XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
+    XDG_STATE_HOME: "{{ dotfiles_xdg_state_home }}"
+    DOTFILES_EXPECTED_VIMRC: "{{ vim_destination_directory }}/vimrc"
+  changed_when: false
+  listen: Validate Vim configuration

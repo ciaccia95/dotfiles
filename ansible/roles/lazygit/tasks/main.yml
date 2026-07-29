@@ -1,0 +1,75 @@
+---
+- name: Check whether Lazygit is installed
+  ansible.builtin.command:
+    argv:
+      - "{{ lazygit_executable }}"
+      - --version
+  register: lazygit_version
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: Require Lazygit
+  ansible.builtin.assert:
+    that:
+      - lazygit_version.rc == 0
+    fail_msg: >-
+      Lazygit is not installed or is not executable as
+      {{ lazygit_executable }}. Install it explicitly, then run this opt-in
+      role again with --tags lazygit.
+
+- name: Verify Lazygit source configuration
+  ansible.builtin.stat:
+    path: "{{ lazygit_source_directory }}/config.yml"
+  delegate_to: localhost
+  become: false
+  register: lazygit_source_config
+  failed_when:
+    - not lazygit_source_config.stat.exists
+      or not lazygit_source_config.stat.isreg
+
+- name: Parse Lazygit source configuration
+  ansible.builtin.set_fact:
+    lazygit_parsed_configuration: >-
+      {{
+        lookup(
+          'ansible.builtin.file',
+          lazygit_source_directory ~ '/config.yml'
+        )
+        | from_yaml
+      }}
+  changed_when: false
+
+- name: Require a Lazygit configuration mapping
+  ansible.builtin.assert:
+    that:
+      - lazygit_parsed_configuration is mapping
+    fail_msg: >-
+      {{ lazygit_source_directory }}/config.yml must contain a YAML mapping.
+
+- name: Inspect existing Lazygit configuration
+  ansible.builtin.stat:
+    path: "{{ lazygit_destination_directory }}"
+    follow: false
+  register: lazygit_destination
+
+- name: Refuse to replace an unmanaged Lazygit symlink
+  ansible.builtin.assert:
+    that:
+      - not lazygit_destination.stat.islnk | default(false)
+    fail_msg: >-
+      {{ lazygit_destination_directory }} is a symbolic link.
+      Replace it explicitly before allowing Ansible to manage this directory.
+
+- name: Ensure Lazygit configuration directory exists
+  ansible.builtin.file:
+    path: "{{ lazygit_destination_directory }}"
+    state: directory
+    mode: "{{ dotfiles_values.deployment.directory_mode }}"
+
+- name: Deploy Lazygit configuration
+  ansible.builtin.copy:
+    src: "{{ lazygit_source_directory }}/config.yml"
+    dest: "{{ lazygit_destination_directory }}/config.yml"
+    mode: "{{ dotfiles_values.deployment.file_mode }}"
+  notify: Validate Lazygit configuration

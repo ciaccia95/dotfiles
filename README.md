@@ -12,17 +12,20 @@ them into the target user's XDG paths, locally or over SSH.
 | --- | --- | --- |
 | Local terminal | Ghostty | Native macOS windows, tabs, splits and SSH entrypoint |
 | Editor | Neovim | Shared, plugin-free editing core for macOS and Linux |
+| Fallback editor | Vim | XDG-native editing with Neovim-compatible behavior |
+| Git interface | Lazygit | Optional keyboard-first local Git workflow |
 | Remote workspace | tmux | Persistent Linux sessions that survive SSH disconnects |
 | Deployment | Ansible | Package installation, XDG mapping and configuration validation |
 
 ```text
 macOS
 └── Ghostty
-    ├── Neovim
+    ├── Neovim or Vim
+    ├── Lazygit
     └── SSH
         └── Linux
             └── tmux
-                ├── Neovim
+                ├── Neovim or Vim
                 ├── operational tools
                 └── long-running sessions
 ```
@@ -35,17 +38,18 @@ local inventory are discovered:
 ```bash
 cd ansible
 
-# Preview Neovim and tmux.
+# Preview Neovim, Vim and tmux.
 ansible-playbook playbooks/dotfiles.yml --check --diff
 
-# Apply Neovim and tmux.
+# Apply Neovim, Vim and tmux.
 ansible-playbook playbooks/dotfiles.yml
 ```
 
-Ghostty is intentionally opt-in and never runs as part of the default play:
+Ghostty and Lazygit are intentionally opt-in:
 
 ```bash
 ansible-playbook playbooks/dotfiles.yml --tags ghostty
+ansible-playbook playbooks/dotfiles.yml --tags lazygit
 ```
 
 Every changed configuration is validated with its native application. A second
@@ -70,7 +74,7 @@ ansible-playbook \
   --ask-become-pass
 ```
 
-On Linux, Ansible installs Neovim and tmux before deploying their
+On Linux, Ansible installs Neovim, Vim and tmux before deploying their
 configuration. Debian, Red Hat and SUSE operating-system families are
 supported through their native package managers. On non-Linux systems,
 package installation is skipped.
@@ -82,19 +86,22 @@ require a suitable supplemental repository for Neovim.
 
 | Command | Result |
 | --- | --- |
-| `ansible-playbook playbooks/dotfiles.yml` | Neovim and tmux |
+| `ansible-playbook playbooks/dotfiles.yml` | Neovim, Vim and tmux |
 | `ansible-playbook playbooks/dotfiles.yml --tags nvim` | Neovim package and configuration |
+| `ansible-playbook playbooks/dotfiles.yml --tags vim` | Vim package and XDG configuration |
 | `ansible-playbook playbooks/dotfiles.yml --tags tmux` | tmux package and configuration |
+| `ansible-playbook playbooks/dotfiles.yml --tags lazygit` | Lazygit configuration after explicit installation |
 | `ansible-playbook playbooks/dotfiles.yml --tags ghostty` | Ghostty configuration on macOS |
 
-Ghostty carries Ansible's special `never` tag. It runs only when `ghostty` is
-requested explicitly.
+Ghostty and Lazygit carry Ansible's special `never` tag. Lazygit is not
+installed automatically because its native-package availability is not
+consistent across the supported Linux releases.
 
 ## Values
 
 Stable defaults live in [`ansible/values.yml`](ansible/values.yml). They cover:
 
-- XDG destination and file modes;
+- XDG configuration/state destinations and file modes;
 - executable and Linux package names;
 - Ghostty theme, font, initial window size, padding and icon.
 
@@ -118,8 +125,10 @@ Overrides are merged recursively, so only changed leaves need to be repeated.
 .
 ├── configs/
 │   ├── ghostty/
+│   ├── lazygit/
 │   ├── nvim/
-│   └── tmux/
+│   ├── tmux/
+│   └── vim/
 ├── ansible/
 │   ├── inventory/
 │   ├── playbooks/
@@ -134,9 +143,12 @@ The repository deliberately avoids mirroring hidden home-directory structures:
 configs/nvim/    → $XDG_CONFIG_HOME/nvim/
 configs/ghostty/ → $XDG_CONFIG_HOME/ghostty/
 configs/tmux/    → $XDG_CONFIG_HOME/tmux/
+configs/vim/     → $XDG_CONFIG_HOME/vim/
+configs/lazygit/ → $XDG_CONFIG_HOME/lazygit/
 ```
 
-If `XDG_CONFIG_HOME` is unset, Ansible uses `~/.config`.
+If `XDG_CONFIG_HOME` is unset, Ansible uses `~/.config`. Vim recovery state
+uses `$XDG_STATE_HOME/vim`, falling back to `~/.local/state/vim`.
 
 ## Documentation
 
@@ -144,7 +156,9 @@ If `XDG_CONFIG_HOME` is unset, Ansible uses `~/.config`.
 - [Ansible](docs/ansible.md) — inventories, tags, values and deployment behavior
 - [Ghostty](docs/ghostty/README.md) — complete terminal configuration reference
 - [Neovim](docs/nvim/README.md) — editor behavior, mappings and validation
+- [Vim](docs/vim/README.md) — XDG fallback editor and Neovim parity
 - [tmux](docs/tmux/README.md) — persistent server behavior and workflow
+- [Lazygit](docs/lazygit/README.md) — opt-in Git interface and editor integration
 
 ## Principles
 
@@ -152,7 +166,7 @@ If `XDG_CONFIG_HOME` is unset, Ansible uses `~/.config`.
 - Add options and plugins only for concrete needs.
 - Make platform-specific behavior explicit.
 - Keep secrets and machine-specific data outside version control.
-- Preserve a useful Neovim core even without plugins or network access.
+- Preserve useful Neovim and Vim cores without external plugins or network access.
 
 ## License
 
