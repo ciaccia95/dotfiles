@@ -29,7 +29,8 @@ workspaces and remains optional on macOS. Neovim configuration is shared
 between macOS and Linux wherever possible.
 
 See [Architecture](docs/architecture.md) for responsibilities, boundaries and
-deployment decisions.
+deployment decisions, and the [Ghostty guide](docs/ghostty/README.md) for the
+complete terminal configuration reference.
 
 ## Principles
 
@@ -56,39 +57,30 @@ the user's home directory.
 
 ## Installation model
 
-The configuration is not ready for general installation yet. Once a package
-has been implemented, it can be linked independently from the repository root:
+Packages are linked independently from the repository root. Ghostty is the
+first implemented package:
 
 ```bash
-# macOS
-stow --target="$HOME" ghostty nvim
-
-# Linux server
-stow --target="$HOME" nvim tmux
+stow --no --verbose --target="$HOME" ghostty
+stow --target="$HOME" ghostty
 ```
 
 Using an explicit target is required because this repository normally lives
 under `~/Projects`, not directly under the home directory.
-
-Before applying changes, preview them with:
-
-```bash
-stow --no --verbose --target="$HOME" <package>
-```
 
 Machine-specific settings belong in ignored local files, not in the shared
 packages.
 
 ## Project status
 
-The repository structure and architecture are defined. Tool configuration is
-being implemented in this order:
+The repository structure and architecture are defined. Implementation follows
+this order:
 
-1. Ghostty
-2. Neovim core, without plugins
-3. Essential Neovim plugins
-4. tmux for remote workflows
-5. Installation and health-check scripts
+- [x] Ghostty
+- [ ] Neovim core, without plugins
+- [ ] Essential Neovim plugins
+- [ ] tmux for remote workflows
+- [ ] Installation and health-check scripts
 
 ## Security
 

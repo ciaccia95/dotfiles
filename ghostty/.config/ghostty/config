@@ -5,10 +5,10 @@
 # Main entry point for the Ghostty configuration.
 #
 # The configuration is split into focused files to keep each section readable,
-# testable and indipendently maintainable.
+# testable and independently maintainable.
 #
 # Relative paths are resolved from the directory containing this file.
-# Included files are loaded in the order declared below.
+# Included files are loaded in the order declared below.
 
 config-file = conf.d/10-font.conf
 config-file = conf.d/20-theme.conf
