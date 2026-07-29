@@ -1,0 +1,1 @@
+-- Plugin loading is intentionally deferred until the core editor is stable.

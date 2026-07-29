@@ -1,99 +1,121 @@
 local opt = vim.opt
 
 --------------------------------------------------------------------------------
--- Appearance
+-- Interface
 --------------------------------------------------------------------------------
 
--- La palette appartiene al terminale, non a Neovim.
+-- Keep the terminal responsible for the palette.
+opt.background = "dark"
 opt.termguicolors = false
 
--- Mostra il numero assoluto sulla riga corrente e relativo sulle altre.
+-- Show the current line as an absolute number and all other lines as relative.
 opt.number = true
 opt.relativenumber = true
+opt.numberwidth = 4
 
--- Mantiene sempre disponibile la colonna usata da diagnostica e Git.
--- Evita che il testo si sposti quando compare un segno.
+-- Reserve a stable column for diagnostics and future Git signs.
 opt.signcolumn = "yes"
 
--- Evidenzia la riga corrente senza imporre colori specifici.
+-- Make the active line easier to locate without imposing custom colors.
 opt.cursorline = true
 
--- Mantiene alcune righe visibili sopra e sotto il cursore.
+-- Keep useful context visible while moving through a file.
 opt.scrolloff = 8
 opt.sidescrolloff = 8
+opt.smoothscroll = true
+
+-- Use one global status line and consistent borders for floating windows.
+opt.laststatus = 3
+opt.winborder = "rounded"
+
+-- Remove decorative end-of-buffer tildes and the startup message.
+opt.fillchars:append({ eob = " " })
+opt.shortmess:append("I")
 
 --------------------------------------------------------------------------------
--- Indentation
+-- Indentation and wrapping
 --------------------------------------------------------------------------------
 
--- Usa spazi invece dei caratteri tab.
+-- Use four spaces by default. Filetype plugins and EditorConfig may override it.
 opt.expandtab = true
-
--- Numero di spazi inseriti con Tab.
 opt.tabstop = 4
 opt.softtabstop = 4
 opt.shiftwidth = 4
 
--- Mantiene automaticamente l'indentazione della riga precedente.
 opt.autoindent = true
 opt.smartindent = true
 
+-- Do not wrap by default, but preserve readable indentation when it is enabled.
+opt.wrap = false
+opt.linebreak = true
+opt.breakindent = true
+
 --------------------------------------------------------------------------------
--- Search
+-- Search and commands
 --------------------------------------------------------------------------------
 
--- Ignora maiuscole e minuscole durante la ricerca.
+-- Search case-insensitively unless the pattern contains an uppercase letter.
 opt.ignorecase = true
-
--- Ripristina la distinzione quando la ricerca contiene lettere maiuscole.
 opt.smartcase = true
-
--- Mostra i risultati mentre si digita.
 opt.incsearch = true
-
--- Evidenzia tutte le corrispondenze.
 opt.hlsearch = true
 
+-- Preview substitutions in a split before applying them.
+opt.inccommand = "split"
+
+-- Make built-in command-line completion compact and predictable.
+opt.wildmode = { "longest:full", "full" }
+opt.wildoptions = { "pum", "tagfile" }
+
 --------------------------------------------------------------------------------
--- Files
+-- Completion
 --------------------------------------------------------------------------------
 
--- Mantiene una cronologia persistente delle modifiche.
+opt.completeopt = { "menu", "menuone", "noselect", "popup" }
+opt.pumheight = 12
+
+--------------------------------------------------------------------------------
+-- Files and recovery
+--------------------------------------------------------------------------------
+
+-- Persist completed changes between sessions.
 opt.undofile = true
 
--- Evita la creazione dei file di backup accanto ai file modificati.
-opt.backup = false
-opt.writebackup = false
-opt.swapfile = false
+-- Keep swap files enabled to recover unsaved work after a crash or disconnect.
+-- Neovim stores them below stdpath("state"), not beside project files.
+opt.swapfile = true
 
--- Rileva modifiche effettuate esternamente al file.
+-- Do not retain backup copies, but keep the temporary write-safety backup.
+opt.backup = false
+opt.writebackup = true
+
+-- Notice changes made by external tools.
 opt.autoread = true
+
+-- Ask before abandoning modified buffers.
+opt.confirm = true
 
 --------------------------------------------------------------------------------
 -- Windows
 --------------------------------------------------------------------------------
 
--- Apre gli split nella direzione naturale.
 opt.splitright = true
 opt.splitbelow = true
+opt.splitkeep = "screen"
 
 --------------------------------------------------------------------------------
 -- Editing
 --------------------------------------------------------------------------------
 
--- Abilita il mouse soltanto dove utile.
 opt.mouse = "a"
-
--- Usa la clipboard di sistema.
-opt.clipboard = "unnamedplus"
-
--- Permette Backspace su , fine riga e inizio inserimento.
 opt.backspace = { "indent", "eol", "start" }
+opt.virtualedit = "block"
 
--- Non manda automaticamente il testo a capo.
-opt.wrap = false
+-- The default registers remain local to Neovim. System clipboard access is
+-- explicit through leader mappings, which also works predictably over SSH.
+opt.clipboard = ""
 
--- Mostra caratteri invisibili solo quando richiesto con :set list.
+-- Invisible characters are available on demand with the list toggle mapping.
 opt.list = false
 opt.listchars = {
     tab = "» ",
@@ -107,11 +129,14 @@ opt.listchars = {
 -- Responsiveness
 --------------------------------------------------------------------------------
 
--- Riduce il ritardo di aggiornamento per diagnostica e plugin futuri.
 opt.updatetime = 250
+opt.timeoutlen = 400
 
--- Tempo massimo per completare una sequenza di tasti.
-opt.timeoutlen = 500
+--------------------------------------------------------------------------------
+-- External search
+--------------------------------------------------------------------------------
 
--- Chiede conferma invece di fallire quando un buffer ha modifiche non salvate.
-opt.confirm = true
+if vim.fn.executable("rg") == 1 then
+    opt.grepprg = "rg --vimgrep --smart-case"
+    opt.grepformat = "%f:%l:%c:%m"
+end
