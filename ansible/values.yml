@@ -40,6 +40,7 @@ dotfiles_defaults:
 
   nvim:
     executable: nvim
+    minimum_version: "0.10.0"
 
   vim:
     executable: vim

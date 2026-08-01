@@ -2,12 +2,13 @@
 
 local api = vim.api
 local group = api.nvim_create_augroup("antonello", { clear = true })
+local highlight_on_yank = (vim.hl and vim.hl.on_yank) or vim.highlight.on_yank
 
 api.nvim_create_autocmd("TextYankPost", {
     group = group,
     desc = "Briefly highlight yanked text",
     callback = function()
-        vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 })
+        highlight_on_yank({ higroup = "IncSearch", timeout = 150 })
     end,
 })
 

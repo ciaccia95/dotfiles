@@ -138,7 +138,7 @@ Parameters that commonly vary are centralized in `values.yml`:
 - optional explicit XDG configuration and state destinations;
 - directory and file modes;
 - Linux privilege escalation and per-family package names;
-- executable paths;
+- executable paths and the minimum supported Neovim version;
 - Ghostty theme, font, initial window size, padding and application icon.
 
 For local overrides:

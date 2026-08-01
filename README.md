@@ -102,7 +102,7 @@ consistent across the supported Linux releases.
 Stable defaults live in [`ansible/values.yml`](ansible/values.yml). They cover:
 
 - XDG configuration/state destinations and file modes;
-- executable and Linux package names;
+- executable paths, the minimum Neovim version and Linux package names;
 - Ghostty theme, font, initial window size, padding and icon.
 
 Use an ignored override file for machine-specific values:

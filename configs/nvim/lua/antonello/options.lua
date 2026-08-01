@@ -6,9 +6,9 @@ local opt = vim.opt
 -- Interface
 --------------------------------------------------------------------------------
 
--- Keep the terminal responsible for the palette.
+-- Use the terminal's RGB support for the built-in Neovim colorscheme.
 opt.background = "dark"
-opt.termguicolors = false
+opt.termguicolors = true
 
 -- Show the current line as an absolute number and all other lines as relative.
 opt.number = true
@@ -18,7 +18,7 @@ opt.numberwidth = 4
 -- Reserve a stable column for diagnostics and future Git signs.
 opt.signcolumn = "yes"
 
--- Make the active line easier to locate without imposing custom colors.
+-- Make the active line easier to locate.
 opt.cursorline = true
 
 -- Keep useful context visible while moving through a file.
@@ -26,9 +26,13 @@ opt.scrolloff = 8
 opt.sidescrolloff = 8
 opt.smoothscroll = true
 
--- Use one global status line and consistent borders for floating windows.
+-- Use one global status line. Neovim 0.11 added the global floating-window
+-- border option; older supported releases still receive explicit borders in
+-- feature-specific configuration such as diagnostics.
 opt.laststatus = 3
-opt.winborder = "rounded"
+if vim.fn.exists("+winborder") == 1 then
+    opt.winborder = "rounded"
+end
 
 -- Remove decorative end-of-buffer tildes and the startup message.
 opt.fillchars:append({ eob = " " })

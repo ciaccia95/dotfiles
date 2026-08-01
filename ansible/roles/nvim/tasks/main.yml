@@ -1,12 +1,38 @@
 ---
-- name: Ensure Neovim is installed
+- name: Check whether Neovim is installed
   ansible.builtin.command:
     argv:
       - "{{ nvim_executable }}"
       - --version
   register: nvim_version
+  check_mode: false
   changed_when: false
-  failed_when: nvim_version.rc != 0
+  failed_when: false
+
+- name: Require Neovim
+  ansible.builtin.assert:
+    that:
+      - nvim_version.rc == 0
+    fail_msg: >-
+      Neovim is not installed or is not executable as {{ nvim_executable }}.
+      Linux package installation is handled by the linux_packages role.
+      On non-Linux systems, install Neovim explicitly before running this role.
+
+- name: Read installed Neovim version
+  ansible.builtin.set_fact:
+    nvim_installed_version: >-
+      {{
+        nvim_version.stdout_lines[0]
+        | regex_search('[0-9]+[.][0-9]+[.][0-9]+')
+      }}
+
+- name: Require a supported Neovim version
+  ansible.builtin.assert:
+    that:
+      - nvim_installed_version is version(nvim_minimum_version, '>=')
+    fail_msg: >-
+      Neovim {{ nvim_installed_version }} is too old; this configuration
+      requires {{ nvim_minimum_version }} or newer.
 
 - name: Verify Neovim source configuration
   ansible.builtin.stat:

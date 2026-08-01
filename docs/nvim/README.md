@@ -6,10 +6,13 @@ recovery and navigation remain available on a new machine or minimal server.
 
 ## Supported baseline
 
-The configuration is validated with Neovim 0.12.4. It relies on current core
-features such as `winborder`, `vim.hl.on_yank()` and the modern diagnostic API.
-Older Neovim releases are not supported implicitly; compatibility changes must
-be deliberate and tested.
+The minimum supported release is Neovim 0.10.0. The configuration is validated
+with both Neovim 0.10.4 on Debian and Neovim 0.12.4 on macOS.
+
+Version-dependent APIs are selected by capability: Neovim 0.11 and newer use
+the global `winborder` option and `vim.hl.on_yank()`, while 0.10 keeps explicit
+feature borders and uses `vim.highlight.on_yank()`. Ansible rejects releases
+older than the configured `nvim.minimum_version` before deploying files.
 
 ## File layout and load order
 
@@ -20,6 +23,7 @@ configs/nvim/
     └── antonello/
         ├── init.lua
         ├── options.lua
+        ├── colors.lua
         ├── diagnostics.lua
         ├── keymaps.lua
         ├── autocmds.lua
@@ -31,8 +35,9 @@ configs/nvim/
 2. Unused external provider hosts are disabled before runtime plugins load.
 3. `antonello/init.lua` loads options and enables filetype, indent and syntax
    support.
-4. Diagnostics, keymaps and autocommands load after the editor defaults.
-5. `plugins/init.lua` is reserved for the next implementation phase and is not
+4. The built-in colorscheme loads after syntax support is active.
+5. Diagnostics, keymaps and autocommands load after the editor defaults.
+6. `plugins/init.lua` is reserved for the next implementation phase and is not
    required by the core.
 
 ## Installation
@@ -77,15 +82,16 @@ does not use them. Language servers and external formatters do not depend on
 these hosts. A provider should be re-enabled only when an adopted plugin
 documents it as a requirement.
 
-### Terminal-owned colors
+### Built-in colorscheme
 
-`termguicolors` remains disabled and no Neovim colorscheme is selected. Syntax
-highlight groups therefore use terminal ANSI colors supplied by Ghostty's
-theme. This keeps the current core visually coherent without duplicating or
-overriding the terminal palette.
+Neovim uses its complete built-in `habamax` colorscheme with `termguicolors`
+enabled. The palette has a dark neutral background, restrained syntax colors
+and clear states for selection, search, diagnostics and diffs. No plugin,
+download or custom highlight override is involved, so the result stays
+consistent on local macOS and remote Linux sessions.
 
-Applications that require a dedicated true-color palette can revisit this
-decision during the plugin phase.
+Ghostty and tmux advertise RGB support end to end. A restricted terminal can
+still use the colorscheme's 256-color fallback.
 
 ### Local and remote clipboard
 
@@ -118,13 +124,13 @@ enabled to protect the write operation itself.
 | Option | Value | Purpose |
 | --- | --- | --- |
 | `background` | `dark` | Selects highlight defaults intended for dark terminals |
-| `termguicolors` | `false` | Uses the terminal-owned ANSI palette |
+| `termguicolors` | `true` | Enables the colorscheme's exact RGB palette |
 | `number`, `relativenumber` | `true` | Combines absolute position with efficient movement counts |
 | `signcolumn` | `yes` | Prevents text shifting when signs appear |
 | `cursorline` | `true` | Makes the active line easier to locate |
 | `scrolloff`, `sidescrolloff` | `8` | Keeps context around the cursor |
 | `laststatus` | `3` | Uses one global status line |
-| `winborder` | `rounded` | Gives built-in and future floating windows a consistent border |
+| `winborder` | `rounded` on Neovim 0.11+ | Gives built-in and future floating windows a consistent border when supported |
 
 End-of-buffer tildes and the startup message are hidden to reduce visual noise.
 
@@ -200,7 +206,7 @@ description visible through `:map`.
 
 | Mapping | Action |
 | --- | --- |
-| `[d`, `]d` | Previous or next diagnostic, provided by Neovim 0.12 |
+| `[d`, `]d` | Previous or next diagnostic, provided by Neovim |
 | `<leader>dd` | Show the diagnostic under the cursor |
 | `<leader>dq` | Send all diagnostics to quickfix |
 | `<leader>ul` | Toggle invisible characters |
