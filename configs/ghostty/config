@@ -1,0 +1,11 @@
+################################################################################
+# Ghostty configuration
+################################################################################
+
+config-file = conf.d/10-font.conf
+config-file = conf.d/20-appearance.conf
+config-file = conf.d/30-window.conf
+config-file = conf.d/40-macos.conf
+config-file = conf.d/50-terminal.conf
+config-file = conf.d/60-keybindings.conf
+config-file = ?conf.d/90-local.conf

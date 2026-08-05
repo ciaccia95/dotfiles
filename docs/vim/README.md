@@ -1,33 +1,45 @@
 # Vim
 
-Vim is the fallback for the Neovim workflow without external plugins. It is
-useful on minimal servers, for recovery work and whenever launching the full
-Neovim environment is unnecessary.
+Vim is the managed editor for local macOS work and remote Linux sessions.
 
-## Baseline and XDG layout
-
-The recommended minimum is Vim 9.1 with native XDG vimrc discovery.
+## Layout
 
 ```text
-configs/vim/vimrc
-  → $XDG_CONFIG_HOME/vim/vimrc
-
-$XDG_STATE_HOME/vim/
-├── swap/
-├── undo/
-└── viminfo
+configs/vim/
+├── vimrc
+└── config/
+    ├── 10-options.vim
+    ├── 20-keymaps.vim
+    ├── 30-autocmds.vim
+    └── 50-theme.vim
 ```
 
-Fallbacks are `~/.config/vim/vimrc` and `~/.local/state/vim`.
+`vimrc` loads Vim's modern defaults and then sources every file below
+`config/` in alphabetical order. The destination is
+`$XDG_CONFIG_HOME/vim`, normally `~/.config/vim`.
 
-Vim searches `~/.vimrc` and `~/.vim/vimrc` before its XDG path. The Ansible
-role therefore refuses to continue when either legacy file exists, including a
-symlink. Migration stays explicit and the active configuration is never
-ambiguous.
+Vim 9.1 or newer is required for native XDG vimrc discovery. The Ansible role
+refuses to deploy while `~/.vimrc` or `~/.vim/vimrc` exists because those
+legacy paths take precedence.
+
+## Behavior
+
+- absolute and relative line numbers;
+- current-line and sign-column highlighting;
+- two-space indentation by default;
+- four-space indentation for Python;
+- literal tabs for Makefile recipes;
+- smart-case incremental search with highlighted matches;
+- horizontal splits below and vertical splits to the right;
+- five lines of vertical scroll context;
+- `Space` as leader;
+- `Space+h` to clear search highlighting;
+- true-color Nord theme.
+
+The Nord theme is installed below
+`pack/themes/start/nord-vim` at the pinned revision in `ansible/values.yml`.
 
 ## Deployment
-
-Vim participates in the default playbook or can run alone:
 
 ```bash
 cd ansible
@@ -35,102 +47,27 @@ ansible-playbook playbooks/dotfiles.yml --tags vim --check --diff
 ansible-playbook playbooks/dotfiles.yml --tags vim
 ```
 
-On Linux, the same tag installs `vim` on Debian and SUSE families or
-`vim-enhanced` on Red Hat family systems. macOS uses its existing Vim and never
-invokes Homebrew automatically.
-
-The role copies a real file, creates private state directories and validates
-the minimum version, vimrc syntax and native XDG discovery. A distribution
-repository that ships Vim older than 9.1 must be upgraded explicitly.
-
-## Neovim parity
-
-Vim intentionally shares the portable editing core:
-
-- `Space` leader;
-- four-space indentation;
-- relative and absolute line numbers;
-- dark terminal-owned palette without true-color overrides;
-- smart-case incremental search;
-- splits below and to the right;
-- explicit system clipboard mappings;
-- quickfix and buffer navigation;
-- persistent undo, swap recovery and cursor restoration;
-- ripgrep integration when `rg` is available;
-- keyboard mappings for window navigation and resizing.
-
-Recent Vim releases also load their bundled optional `hlyank` runtime package.
-If it is unavailable, startup still succeeds and only yank highlighting is
-omitted.
-
-Vim does not emulate Neovim-only diagnostics, floating-window borders, Lua APIs
-or the global status line. Those differences remain explicit instead of being
-approximated with plugins.
-
-## Keybindings
-
-| Mapping | Action |
-| --- | --- |
-| `n`, `N` | Move to and center the next or previous search result |
-| `Ctrl+d`, `Ctrl+u` | Scroll half a page and center |
-| `Ctrl+h/j/k/l` | Move between Vim windows |
-| `Ctrl+Arrow` | Resize the current window |
-| `[b`, `]b` | Previous or next buffer |
-| `[q`, `]q` | Previous or next quickfix item |
-| `Space bd` | Delete the current buffer with confirmation |
-| `Space co`, `Space cc` | Open or close quickfix |
-| `Space w` | Write |
-| `Space q` | Quit with confirmation |
-| `Space x` | Write and quit |
-| `Space y`, `Space Y` | Copy to the system clipboard |
-| `Space p`, `Space P` | Paste from the system clipboard |
-| `Space ul` | Toggle invisible characters |
-| `Space uw` | Toggle line wrapping |
-| `Escape` | Clear search highlighting |
-| `Escape Escape` | Leave Vim terminal mode |
-
-Ordinary `y`, `d`, `p` and `P` continue using internal Vim registers, matching
-Neovim and remaining predictable over SSH.
+On supported Linux families, the tag installs Vim through the native package
+manager. macOS uses its existing Vim installation.
 
 ## Validation
 
-Validate the source directly with isolated XDG state:
+Validate the repository source using the already installed Nord checkout:
 
 ```bash
-vim_test_root="$(mktemp -d)"
-mkdir -p "$vim_test_root/config/vim" "$vim_test_root/state"
-cp configs/vim/vimrc "$vim_test_root/config/vim/vimrc"
-
-XDG_CONFIG_HOME="$vim_test_root/config" \
-XDG_STATE_HOME="$vim_test_root/state" \
-vim --not-a-term -T dumb -n -i NONE -c 'qa!' </dev/null
+XDG_CONFIG_HOME="$HOME/.config" \
+vim -Nu "$PWD/../configs/vim/vimrc" -n -es -i NONE \
+  -c 'if !empty(v:errmsg) | cquit 1 | endif' \
+  -c 'qa!'
 ```
 
-Inspect the active file and important options interactively:
+After deployment, verify native discovery interactively:
 
 ```vim
 :echo $MYVIMRC
-:set shiftwidth? relativenumber? clipboard? undodir? directory? viminfofile?
-:map
-:autocmd antonello
+:set number? relativenumber? shiftwidth? termguicolors?
+:colorscheme
 ```
 
-`$MYVIMRC` must resolve to `$XDG_CONFIG_HOME/vim/vimrc`.
-
-## Rollback
-
-The configuration and mutable state are independent:
-
-```bash
-vim_config_home="${XDG_CONFIG_HOME:-$HOME/.config}/vim"
-vim_state_home="${XDG_STATE_HOME:-$HOME/.local/state}/vim"
-```
-
-Revert the repository change and rerun the playbook to restore an earlier
-version. Ansible does not delete legacy files or mutable Vim state.
-
-## Upstream documentation
-
-- [Vim startup and XDG discovery](https://vimhelp.org/starting.txt.html)
-- [Vim options](https://vimhelp.org/options.txt.html)
-- [Vim mappings](https://vimhelp.org/map.txt.html)
+`$MYVIMRC` must resolve to `$XDG_CONFIG_HOME/vim/vimrc` and the active color
+scheme must be `nord`.

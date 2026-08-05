@@ -1,4 +1,4 @@
-# Keep Lazygit keyboard-first and let Neovim handle file editing.
+# Keep Lazygit keyboard-first and let Vim handle file editing.
 gui:
   mouseEvents: false
   scrollOffMargin: 4
@@ -6,7 +6,7 @@ gui:
   nerdFontsVersion: "3"
 
 os:
-  editPreset: nvim
+  editPreset: vim
 
 disableStartupPopups: true
 

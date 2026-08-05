@@ -1,9 +1,17 @@
 ---
 vim_source_directory: "{{ dotfiles_source_root }}/vim"
 vim_destination_directory: "{{ dotfiles_xdg_config_home }}/vim"
-vim_state_directory: "{{ dotfiles_xdg_state_home }}/vim"
 vim_executable: "{{ dotfiles_values.vim.executable }}"
 vim_minimum_version: "9.1"
+vim_configuration_files:
+  - vimrc
+  - config/10-options.vim
+  - config/20-keymaps.vim
+  - config/30-autocmds.vim
+  - config/50-theme.vim
+vim_theme_repository: "{{ dotfiles_values.vim.theme.repository }}"
+vim_theme_version: "{{ dotfiles_values.vim.theme.version }}"
+vim_theme_directory: "{{ vim_destination_directory }}/pack/themes/start/nord-vim"
 vim_legacy_configuration_files:
   - "{{ ansible_facts['env']['HOME'] }}/.vimrc"
   - "{{ ansible_facts['env']['HOME'] }}/.vim/vimrc"

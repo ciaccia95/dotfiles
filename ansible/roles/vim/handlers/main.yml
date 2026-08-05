@@ -16,7 +16,6 @@
     expand_argument_vars: false
   environment:
     XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
-    XDG_STATE_HOME: "{{ dotfiles_xdg_state_home }}"
   changed_when: false
   listen: Validate Vim configuration
 
@@ -41,7 +40,6 @@
     expand_argument_vars: false
   environment:
     XDG_CONFIG_HOME: "{{ dotfiles_xdg_config_home }}"
-    XDG_STATE_HOME: "{{ dotfiles_xdg_state_home }}"
     DOTFILES_EXPECTED_VIMRC: "{{ vim_destination_directory }}/vimrc"
   changed_when: false
   listen: Validate Vim configuration

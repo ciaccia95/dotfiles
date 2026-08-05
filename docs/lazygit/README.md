@@ -1,7 +1,7 @@
 # Lazygit
 
 Lazygit is the optional keyboard-first Git interface for the local Ghostty
-workflow. It remains a separate tool: it does not configure Git, Neovim, tmux
+workflow. It remains a separate tool: it does not configure Git, Vim, tmux
 or the shell.
 
 ## Why it is opt-in
@@ -47,7 +47,7 @@ Only behavior with a concrete workflow benefit is overridden:
 - four lines of scroll context make long lists calmer to navigate;
 - random tips and introductory popups are hidden;
 - Nerd Font 3 icons match the configured Ghostty font;
-- the `nvim` editor preset opens files and line locations consistently;
+- the `vim` editor preset opens files and line locations consistently;
 - self-update prompts are disabled because installation owns upgrades.
 
 No color theme is imposed. Lazygit's own UI and Ghostty's palette remain
@@ -56,7 +56,7 @@ non-portable `base64` flags and tmux passthrough requirements.
 
 Default Lazygit keys already follow the intended Vim-like workflow:
 `h/j/k/l` move between panels and items, `/` searches, `n` and `N` repeat
-searches, `Space` selects, `Enter` opens and `e` edits in Neovim.
+searches, `Space` selects, `Enter` opens and `e` edits in Vim.
 
 ## Validation
 
@@ -68,7 +68,7 @@ lazygit --print-config-dir
 ```
 
 The directory should be `$XDG_CONFIG_HOME/lazygit`. Open a disposable
-repository and verify that `e` launches Neovim, pointer dragging selects
+repository and verify that `e` launches Vim, pointer dragging selects
 terminal text and no update prompt appears.
 
 ## Rollback

@@ -4,7 +4,6 @@ dotfiles_defaults:
   deployment:
     source_root: "{{ playbook_dir }}/../../configs"
     xdg_config_home: null
-    xdg_state_home: null
     directory_mode: "0755"
     file_mode: "0644"
 
@@ -12,41 +11,29 @@ dotfiles_defaults:
     become: true
     packages:
       Debian:
-        nvim: neovim
         vim: vim
         tmux: tmux
       RedHat:
-        nvim: neovim
         vim: vim-enhanced
         tmux: tmux
       Suse:
-        nvim: neovim
         vim: vim
         tmux: tmux
 
   ghostty:
     executable: /Applications/Ghostty.app/Contents/MacOS/ghostty
-    theme: Broadcast
-    font:
-      family: JetBrainsMono Nerd Font Mono
-      size: 15
-    window:
-      width: 120
-      height: 36
-      padding_x: 10
-      padding_y: 8
-    macos:
-      icon: xray
-
-  nvim:
-    executable: nvim
-    minimum_version: "0.10.0"
 
   vim:
     executable: vim
+    theme:
+      repository: https://github.com/arcticicestudio/nord-vim.git
+      version: f13f5dfbb784deddbc1d8195f34dfd9ec73e2295
 
   tmux:
     executable: tmux
+    theme:
+      repository: https://github.com/nordtheme/tmux.git
+      version: f7b6da07ab55fe32ee5f7d62da56d8e5ac691a92
 
   lazygit:
     executable: lazygit

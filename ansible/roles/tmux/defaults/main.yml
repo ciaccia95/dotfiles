@@ -7,17 +7,22 @@ tmux_configuration_files:
   - conf.d/10-server.conf
   - conf.d/20-terminal.conf
   - conf.d/30-input.conf
-  - conf.d/40-sessions.conf
-  - conf.d/50-windows.conf
-  - conf.d/60-panes.conf
-  - conf.d/70-copy-mode.conf
-  - conf.d/80-status.conf
-  - conf.d/90-plugins.conf
+  - conf.d/40-windows.conf
+  - conf.d/50-status.conf
+  - conf.d/60-copy-mode.conf
+tmux_theme_repository: "{{ dotfiles_values.tmux.theme.repository }}"
+tmux_theme_version: "{{ dotfiles_values.tmux.theme.version }}"
+tmux_theme_directory: "{{ tmux_destination_directory }}/themes/nord"
 tmux_obsolete_files:
   - .config
   - conf.d/10-general.conf
   - conf.d/20-key.conf
   - conf.d/30-panes.conf
+  - conf.d/40-sessions.conf
   - conf.d/40-status.conf
-  - conf.d/90-local.conf
+  - conf.d/50-windows.conf
+  - conf.d/60-panes.conf
+  - conf.d/70-copy-mode.conf
+  - conf.d/80-status.conf
+  - conf.d/90-plugins.conf
 ...

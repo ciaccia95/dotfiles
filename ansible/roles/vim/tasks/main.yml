@@ -39,15 +39,18 @@
       Vim {{ vim_detected_version }} is too old for native XDG vimrc discovery.
       Install Vim {{ vim_minimum_version }} or newer before deploying this role.
 
-- name: Verify Vim source configuration
+- name: Verify Vim source files
   ansible.builtin.stat:
-    path: "{{ vim_source_directory }}/vimrc"
+    path: "{{ vim_source_directory }}/{{ item }}"
   delegate_to: localhost
   become: false
-  register: vim_source_config
+  register: vim_source_file
   failed_when:
-    - not vim_source_config.stat.exists
-      or not vim_source_config.stat.isreg
+    - not vim_source_file.stat.exists
+      or not vim_source_file.stat.isreg
+  loop: "{{ vim_configuration_files }}"
+  loop_control:
+    label: "{{ item }}"
 
 - name: Inspect legacy Vim configuration
   ansible.builtin.stat:
@@ -85,7 +88,7 @@
       {{ vim_destination_directory }} is a symbolic link.
       Replace it explicitly before allowing Ansible to manage this directory.
 
-- name: Ensure Vim XDG directories exist
+- name: Ensure Vim directories exist
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
@@ -93,18 +96,26 @@
   loop:
     - path: "{{ vim_destination_directory }}"
       mode: "{{ dotfiles_values.deployment.directory_mode }}"
-    - path: "{{ vim_state_directory }}"
-      mode: "0700"
-    - path: "{{ vim_state_directory }}/undo"
-      mode: "0700"
-    - path: "{{ vim_state_directory }}/swap"
-      mode: "0700"
+    - path: "{{ vim_destination_directory }}/config"
+      mode: "{{ dotfiles_values.deployment.directory_mode }}"
+    - path: "{{ vim_destination_directory }}/pack/themes/start"
+      mode: "{{ dotfiles_values.deployment.directory_mode }}"
   loop_control:
     label: "{{ item.path }}"
 
 - name: Deploy Vim configuration
   ansible.builtin.copy:
-    src: "{{ vim_source_directory }}/vimrc"
-    dest: "{{ vim_destination_directory }}/vimrc"
-    mode: "{{ dotfiles_values.deployment.file_mode }}"
+    src: "{{ vim_source_directory }}/"
+    dest: "{{ vim_destination_directory }}/"
+    mode: preserve
+    directory_mode: "{{ dotfiles_values.deployment.directory_mode }}"
   notify: Validate Vim configuration
+
+- name: Install the pinned Nord Vim theme
+  ansible.builtin.git:
+    repo: "{{ vim_theme_repository }}"
+    dest: "{{ vim_theme_directory }}"
+    version: "{{ vim_theme_version }}"
+    update: true
+  notify: Validate Vim configuration
+...

@@ -1,5 +1,13 @@
 ---
-ghostty_source_template: "{{ dotfiles_source_root }}/ghostty/config.ghostty.j2"
+ghostty_source_directory: "{{ dotfiles_source_root }}/ghostty"
 ghostty_destination_directory: "{{ dotfiles_xdg_config_home }}/ghostty"
 ghostty_executable: "{{ dotfiles_values.ghostty.executable }}"
+ghostty_configuration_files:
+  - config
+  - conf.d/10-font.conf
+  - conf.d/20-appearance.conf
+  - conf.d/30-window.conf
+  - conf.d/40-macos.conf
+  - conf.d/50-terminal.conf
+  - conf.d/60-keybindings.conf
 ...

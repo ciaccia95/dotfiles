@@ -22,16 +22,6 @@
             true
           )
       }}
-    dotfiles_xdg_state_home: >-
-      {{
-        dotfiles_values.deployment.xdg_state_home
-        | default(
-            ansible_facts['env']['XDG_STATE_HOME']
-            | default(ansible_facts['env']['HOME'] ~ '/.local/state', true),
-            true
-          )
-      }}
-
   pre_tasks:
     - name: Verify the controller configuration root
       ansible.builtin.stat:
@@ -49,10 +39,6 @@
     - role: linux_packages
       tags:
         - packages
-
-    - role: nvim
-      tags:
-        - nvim
 
     - role: vim
       tags:

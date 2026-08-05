@@ -4,18 +4,8 @@ dotfiles_overrides:
   deployment:
     # Set an absolute remote path to override $XDG_CONFIG_HOME or ~/.config.
     xdg_config_home: null
-    # Set this together with an exported XDG_STATE_HOME on the managed host.
-    xdg_state_home: null
 
   linux:
     # Disable privilege escalation only when packages are managed externally.
     become: true
-
-  ghostty:
-    theme: Broadcast
-    font:
-      size: 16
-    window:
-      width: 140
-      height: 42
 ...

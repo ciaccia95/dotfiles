@@ -12,15 +12,18 @@
       - --version
   changed_when: false
 
-- name: Verify Ghostty source template
+- name: Verify Ghostty source files
   ansible.builtin.stat:
-    path: "{{ ghostty_source_template }}"
+    path: "{{ ghostty_source_directory }}/{{ item }}"
   delegate_to: localhost
   become: false
-  register: ghostty_source
+  register: ghostty_source_file
   failed_when:
-    - not ghostty_source.stat.exists
-      or not ghostty_source.stat.isreg
+    - not ghostty_source_file.stat.exists
+      or not ghostty_source_file.stat.isreg
+  loop: "{{ ghostty_configuration_files }}"
+  loop_control:
+    label: "{{ item }}"
 
 - name: Ensure the XDG configuration root exists
   ansible.builtin.file:
@@ -42,20 +45,20 @@
       {{ ghostty_destination_directory }} is a symbolic link.
       Replace it explicitly before allowing Ansible to manage this directory.
 
-- name: Ensure Ghostty configuration directory exists
+- name: Ensure Ghostty directories exist
   ansible.builtin.file:
-    path: "{{ ghostty_destination_directory }}"
+    path: "{{ item }}"
     state: directory
     mode: "{{ dotfiles_values.deployment.directory_mode }}"
+  loop:
+    - "{{ ghostty_destination_directory }}"
+    - "{{ ghostty_destination_directory }}/conf.d"
 
-- name: Remove the legacy modular Ghostty configuration
-  ansible.builtin.file:
-    path: "{{ ghostty_destination_directory }}/conf.d"
-    state: absent
-
-- name: Render Ghostty configuration
-  ansible.builtin.template:
-    src: "{{ ghostty_source_template }}"
-    dest: "{{ ghostty_destination_directory }}/config"
-    mode: "{{ dotfiles_values.deployment.file_mode }}"
+- name: Deploy Ghostty configuration
+  ansible.builtin.copy:
+    src: "{{ ghostty_source_directory }}/"
+    dest: "{{ ghostty_destination_directory }}/"
+    mode: preserve
+    directory_mode: "{{ dotfiles_values.deployment.directory_mode }}"
   notify: Validate Ghostty configuration
+...

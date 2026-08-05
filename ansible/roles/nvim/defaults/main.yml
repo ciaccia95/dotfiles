@@ -1,6 +1,0 @@
----
-nvim_source_directory: "{{ dotfiles_source_root }}/nvim"
-nvim_destination_directory: "{{ dotfiles_xdg_config_home }}/nvim"
-nvim_executable: "{{ dotfiles_values.nvim.executable }}"
-nvim_minimum_version: "{{ dotfiles_values.nvim.minimum_version }}"
-...
